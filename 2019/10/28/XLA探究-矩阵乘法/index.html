@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- Head tag -->
+<head><meta name="generator" content="Hexo 3.8.0">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="google-site-verification" content="xBT4GhYoi5qRD5tr338pgPM5OWHHIDR6mNg1a3euekI">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="keyword" content="Computer science">
+    <link rel="shortcut icon" href="/img/main-photo.jpg">
+    <!-- Place this tag in your head or just before your close body tag. -->
+    <script async defer src="https://buttons.github.io/buttons.js"></script>
+    <title>
+        
+          XLA探究: 矩阵乘法 - Sz Zheng | PKU
+        
+    </title>
+
+    <link rel="canonical" href="http://yoursite-url/2019/10/28/XLA探究-矩阵乘法/">
+
+    <!-- Bootstrap Core CSS -->
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+
+    <!-- Custom CSS --> 
+    <link rel="stylesheet" href="/css/beantech.min.css">
+    
+    <!-- Pygments Highlight CSS -->
+    <link rel="stylesheet" href="/css/highlight.css">
+
+    <link rel="stylesheet" href="/css/widget.css">
+
+    <link rel="stylesheet" href="/css/rocket.css">
+
+    <link rel="stylesheet" href="/css/signature.css">
+
+    <link rel="stylesheet" href="/css/toc.css">
+
+    <!-- Custom Fonts -->
+    <!-- <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet" type="text/css"> -->
+    <!-- Hux change font-awesome CDN to qiniu -->
+    <link href="https://cdn.staticfile.org/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+
+    <!-- Hux Delete, sad but pending in China
+    <link href='http://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/
+    css'>
+    -->
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <!-- ga & ba script hoook -->
+    <script></script>
+</head>
+
+
+<!-- hack iOS CSS :active style -->
+<body ontouchstart="">
+	<!-- Modified by Yu-Hsuan Yen -->
+<!-- Post Header -->
+<style type="text/css">
+    header.intro-header{
+        
+            background-image: url('null')
+            /*post*/
+        
+    }
+    
+    #signature{
+        background-image: url('/img/signature/signature.png');
+    }
+    
+</style>
+
+<header class="intro-header">
+    <!-- Signature -->
+    <div id="signature">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                
+                    <div class="post-heading">
+                        <div class="tags">
+                            
+                              <a class="tag" href="/tags/#Tensorflow, XLA, 深度学习编译器，矩阵乘法" title="Tensorflow, XLA, 深度学习编译器，矩阵乘法">Tensorflow, XLA, 深度学习编译器，矩阵乘法</a>
+                            
+                        </div>
+                        <h1>XLA探究: 矩阵乘法</h1>
+                        <h2 class="subheading"></h2>
+                        <span class="meta">
+                            Posted by Sz Zheng on
+                            2019-10-28
+                        </span>
+                    </div>
+                
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+	
+    <!-- Navigation -->
+<nav class="navbar navbar-default navbar-custom navbar-fixed-top">
+    <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header page-scroll">
+            <button type="button" class="navbar-toggle">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/">Secretly beautiful</a>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <!-- Known Issue, found by Hux:
+            <nav>'s height woule be hold on by its content.
+            so, when navbar scale out, the <nav> will cover tags.
+            also mask any touch event of tags, unfortunately.
+        -->
+        <div id="huxblog_navbar">
+            <div class="navbar-collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="/">Home</a>
+                    </li>
+
+                    
+
+                        
+                    
+
+                        
+                        <li>
+                            <a href="/archive/">Archives</a>
+                        </li>
+                        
+                    
+
+                        
+                        <li>
+                            <a href="/about/">About</a>
+                        </li>
+                        
+                    
+
+                        
+                        <li>
+                            <a href="/tags/">Tags</a>
+                        </li>
+                        
+                    
+                    
+                </ul>
+            </div>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+    <!-- /.container -->
+</nav>
+<script>
+    // Drop Bootstarp low-performance Navbar
+    // Use customize navbar with high-quality material design animation
+    // in high-perf jank-free CSS3 implementation
+    var $body   = document.body;
+    var $toggle = document.querySelector('.navbar-toggle');
+    var $navbar = document.querySelector('#huxblog_navbar');
+    var $collapse = document.querySelector('.navbar-collapse');
+
+    $toggle.addEventListener('click', handleMagic)
+    function handleMagic(e){
+        if ($navbar.className.indexOf('in') > 0) {
+        // CLOSE
+            $navbar.className = " ";
+            // wait until animation end.
+            setTimeout(function(){
+                // prevent frequently toggle
+                if($navbar.className.indexOf('in') < 0) {
+                    $collapse.style.height = "0px"
+                }
+            },400)
+        }else{
+        // OPEN
+            $collapse.style.height = "auto"
+            $navbar.className += " in";
+        }
+    }
+</script>
+
+
+    <!-- Main Content -->
+    <!-- Modify by Yu-Hsuan Yen -->
+
+<!-- Post Content -->
+<article>
+    <div class="container">
+        <div class="row">
+
+            <!-- Post Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                post-container">
+
+                <h1><span id="xla-探究矩阵乘法">XLA 探究：矩阵乘法</span></h1>
+<hr>
+<h2><span id="1-矩阵乘法">1. 矩阵乘法</span></h2>
+<p>矩阵乘法是被广泛使用的算子，其数学表达式可以写为：<br>
+$$C(i, j) = \sum_{k=0}^{K-1}A(i, k) * B(k, j), 0 \le i &lt; M, 0 \le j &lt; N$$</p>
+<p>最简单的实现方法为:</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> range(M):</span><br><span class="line">    <span class="keyword">for</span> j <span class="keyword">in</span> range(N):</span><br><span class="line">        C(i, j) = <span class="number">0</span></span><br><span class="line">        <span class="keyword">for</span> k <span class="keyword">in</span> range(K):</span><br><span class="line">            C(i, j) += A(i, k) * B(k, j)</span><br></pre></td></tr></table></figure>
+<hr>
+<h2><span id="2-在-tensorflow-中定义矩阵乘法">2. 在 Tensorflow 中定义矩阵乘法</span></h2>
+<p>Tensorflow中提供的线性代数和张量操作 API 允许对于一种计算有多种表达方式，推荐的方式往往是尽量利用已经存在的 API 原子性地表达一个运算，比如 tf.nn.conv2d, tf.linalg.matmul 等等，而不是将其拆开成多个操作。但是在深度学习网络的发展过程中，必然会有新的算子被提出，所以利用已有的运算拼凑新的运算是具有意义的。在本文里我们先尝试利用已有运算拼凑矩阵乘法，用来观测 XLA 对于拼凑出的运算（其实是计算图）会进行怎样的操作。</p>
+<h3><span id="21-直接调用-matmul-api">2.1 直接调用 matmul API</span></h3>
+<p>直接使用预设好的 API</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">gemm1</span><span class="params">(A, B)</span>:</span></span><br><span class="line">    <span class="keyword">return</span> tf.linalg.matmul(A, B)</span><br></pre></td></tr></table></figure>
+<p>对于这种计算图，XLA 的优化在于消除冗余的 reshape 等节点。但优化前后都会调用 dot 这个运算 API 完成计算，dot 本身就在 HLO instruction 之中。</p>
+<h3><span id="22-利用升维降维计算矩阵乘法">2.2 利用升维降维计算矩阵乘法</span></h3>
+<p>先将输入矩阵升维到三维，进行逐点相乘后再降维累加得到输出矩阵</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">gemm2</span><span class="params">(A, B)</span>:</span></span><br><span class="line">    <span class="keyword">return</span> tf.reduce_sum(</span><br><span class="line">        tf.multiply(</span><br><span class="line">            tf.tile(tf.expand_dims(A, <span class="number">-1</span>), [<span class="number">1</span>, <span class="number">1</span>, B.shape[<span class="number">1</span>]]), </span><br><span class="line">            tf.tile(tf.expand_dims(B, <span class="number">0</span>), [A.shape[<span class="number">0</span>], <span class="number">1</span>, <span class="number">1</span>])</span><br><span class="line">        ),</span><br><span class="line">        axis=<span class="number">1</span></span><br><span class="line">    )</span><br></pre></td></tr></table></figure>
+<p>打印出 XLA 的 IR，首先看图形：<br>
+初始计算图中有很多冗余的reshape以及broadcast。<br>
+<img src="./XLA%E6%8E%A2%E7%A9%B6-%E7%9F%A9%E9%98%B5%E4%B9%98%E6%B3%95/gemm2-pre.png" alt="初始计算图"><br>
+优化后的计算图简洁了很多。<br>
+<img src="%E3%80%82/../XLA%E6%8E%A2%E7%A9%B6-%E7%9F%A9%E9%98%B5%E4%B9%98%E6%B3%95/gemm2-post.png" alt="优化后的计算图"></p>
+<p>再来对比文本形式的 HLO IR。<br>
+优化前的 IR：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">HloModule cluster_15890044661264488385__<span class="number">.30</span></span><br><span class="line"></span><br><span class="line">%Sum-reduction<span class="number">.21</span> (x<span class="number">.22</span>: f32[], y<span class="number">.23</span>: f32[]) -&gt; f32[] &#123;</span><br><span class="line">  %x<span class="number">.22</span> = f32[] parameter(<span class="number">0</span>)</span><br><span class="line">  %y<span class="number">.23</span> = f32[] parameter(<span class="number">1</span>)</span><br><span class="line">  ROOT %add<span class="number">.24</span> = f32[] add(f32[] %x<span class="number">.22</span>, f32[] %y<span class="number">.23</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">ENTRY %cluster_15890044661264488385__<span class="number">.30</span> (arg0<span class="number">.1</span>: f32[<span class="number">2</span>,<span class="number">2</span>], arg1<span class="number">.2</span>: f32[<span class="number">2</span>,<span class="number">2</span>]) -&gt; f32[<span class="number">2</span>,<span class="number">2</span>] &#123;</span><br><span class="line">  %constant<span class="number">.6</span> = f32[] constant(<span class="number">0</span>), metadata=&#123;op_type=<span class="string">"Tile"</span> op_name=<span class="string">"Tile"</span>&#125;</span><br><span class="line">  %broadcast<span class="number">.7</span> = f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; broadcast(f32[] %constant<span class="number">.6</span>), dimensions=&#123;&#125;, metadata=&#123;op_type=<span class="string">"Tile"</span> op_name=<span class="string">"Tile"</span>&#125;</span><br><span class="line">  %arg0<span class="number">.1</span> = f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; parameter(<span class="number">0</span>), parameter_replication=&#123;<span class="literal">false</span>&#125;, metadata=&#123;op_name=<span class="string">"XLA_Args"</span>&#125;</span><br><span class="line">  %reshape<span class="number">.3</span> = f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; reshape(f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; %arg0<span class="number">.1</span>)</span><br><span class="line">  %reshape<span class="number">.5</span> = f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">1</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; reshape(f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; %reshape<span class="number">.3</span>), metadata=&#123;op_type=<span class="string">"ExpandDims"</span> op_name=<span class="string">"ExpandDims"</span>&#125;</span><br><span class="line">  %reshape<span class="number">.8</span> = f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; reshape(f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">1</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; %reshape<span class="number">.5</span>), metadata=&#123;op_type=<span class="string">"Tile"</span> op_name=<span class="string">"Tile"</span>&#125;</span><br><span class="line">  %broadcast<span class="number">.9</span> = f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; broadcast(f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; %reshape<span class="number">.8</span>), dimensions=&#123;<span class="number">0</span>,<span class="number">1</span>&#125;, metadata=&#123;op_type=<span class="string">"Tile"</span> op_name=<span class="string">"Tile"</span>&#125;</span><br><span class="line">  %add<span class="number">.10</span> = f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; add(f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; %broadcast<span class="number">.7</span>, f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; %broadcast<span class="number">.9</span>), metadata=&#123;op_type=<span class="string">"Tile"</span> op_name=<span class="string">"Tile"</span>&#125;</span><br><span class="line">  %constant<span class="number">.12</span> = f32[] constant(<span class="number">0</span>), metadata=&#123;op_type=<span class="string">"Tile"</span> op_name=<span class="string">"Tile_1"</span>&#125;</span><br><span class="line">  %broadcast<span class="number">.13</span> = f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; broadcast(f32[] %constant<span class="number">.12</span>), dimensions=&#123;&#125;, metadata=&#123;op_type=<span class="string">"Tile"</span> op_name=<span class="string">"Tile_1"</span>&#125;</span><br><span class="line">  %arg1<span class="number">.2</span> = f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; parameter(<span class="number">1</span>), parameter_replication=&#123;<span class="literal">false</span>&#125;, metadata=&#123;op_name=<span class="string">"XLA_Args"</span>&#125;</span><br><span class="line">  %reshape<span class="number">.4</span> = f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; reshape(f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; %arg1<span class="number">.2</span>)</span><br><span class="line">  %reshape<span class="number">.11</span> = f32[<span class="number">1</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; reshape(f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; %reshape<span class="number">.4</span>), metadata=&#123;op_type=<span class="string">"ExpandDims"</span> op_name=<span class="string">"ExpandDims_1"</span>&#125;</span><br><span class="line">  %reshape<span class="number">.14</span> = f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; reshape(f32[<span class="number">1</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; %reshape<span class="number">.11</span>), metadata=&#123;op_type=<span class="string">"Tile"</span> op_name=<span class="string">"Tile_1"</span>&#125;</span><br><span class="line">  %broadcast<span class="number">.15</span> = f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; broadcast(f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; %reshape<span class="number">.14</span>), dimensions=&#123;<span class="number">1</span>,<span class="number">2</span>&#125;, metadata=&#123;op_type=<span class="string">"Tile"</span> op_name=<span class="string">"Tile_1"</span>&#125;</span><br><span class="line">  %add<span class="number">.16</span> = f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; add(f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; %broadcast<span class="number">.13</span>, f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; %broadcast<span class="number">.15</span>), metadata=&#123;op_type=<span class="string">"Tile"</span> op_name=<span class="string">"Tile_1"</span>&#125;</span><br><span class="line">  %multiply<span class="number">.17</span> = f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; multiply(f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; %add<span class="number">.10</span>, f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; %add<span class="number">.16</span>), metadata=&#123;op_type=<span class="string">"Mul"</span> op_name=<span class="string">"Mul"</span>&#125;</span><br><span class="line">  %convert<span class="number">.18</span> = f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; convert(f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; %multiply<span class="number">.17</span>), metadata=&#123;op_type=<span class="string">"Sum"</span> op_name=<span class="string">"Sum"</span>&#125;</span><br><span class="line">  %constant<span class="number">.19</span> = f32[] constant(<span class="number">0</span>), metadata=&#123;op_type=<span class="string">"Sum"</span> op_name=<span class="string">"Sum"</span>&#125;</span><br><span class="line">  %convert<span class="number">.20</span> = f32[] convert(f32[] %constant<span class="number">.19</span>), metadata=&#123;op_type=<span class="string">"Sum"</span> op_name=<span class="string">"Sum"</span>&#125;</span><br><span class="line">  %reduce<span class="number">.25</span> = f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; reduce(f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; %convert<span class="number">.18</span>, f32[] %convert<span class="number">.20</span>), dimensions=&#123;<span class="number">1</span>&#125;, to_apply=%Sum-reduction<span class="number">.21</span>, metadata=&#123;op_type=<span class="string">"Sum"</span> op_name=<span class="string">"Sum"</span>&#125;</span><br><span class="line">  %convert<span class="number">.26</span> = f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; convert(f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; %reduce<span class="number">.25</span>), metadata=&#123;op_type=<span class="string">"Sum"</span> op_name=<span class="string">"Sum"</span>&#125;</span><br><span class="line">  %reshape<span class="number">.27</span> = f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; reshape(f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; %convert<span class="number">.26</span>), metadata=&#123;op_name=<span class="string">"XLA_Retvals"</span>&#125;</span><br><span class="line">  %tuple<span class="number">.28</span> = (f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125;) tuple(f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; %reshape<span class="number">.27</span>), metadata=&#123;op_name=<span class="string">"XLA_Retvals"</span>&#125;</span><br><span class="line">  ROOT %get-tuple-element<span class="number">.29</span> = f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; get-tuple-element((f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125;) %tuple<span class="number">.28</span>), index=<span class="number">0</span>, metadata=&#123;op_name=<span class="string">"XLA_Retvals"</span>&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>优化后的 IR：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">HloModule cluster_15890044661264488385__<span class="number">.30</span></span><br><span class="line"></span><br><span class="line">%Sum-reduction<span class="number">.21</span> (x<span class="number">.22</span>: f32[], y<span class="number">.23</span>: f32[]) -&gt; f32[] &#123;</span><br><span class="line">  %x<span class="number">.22</span> = f32[] parameter(<span class="number">0</span>)</span><br><span class="line">  %y<span class="number">.23</span> = f32[] parameter(<span class="number">1</span>)</span><br><span class="line">  ROOT %add<span class="number">.24</span> = f32[] add(f32[] %x<span class="number">.22</span>, f32[] %y<span class="number">.23</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">%fused_computation (param_0<span class="number">.3</span>: f32[<span class="number">2</span>,<span class="number">2</span>], param_1<span class="number">.4</span>: f32[<span class="number">2</span>,<span class="number">2</span>]) -&gt; f32[<span class="number">2</span>,<span class="number">2</span>] &#123;</span><br><span class="line">  %param_1<span class="number">.4</span> = f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; parameter(<span class="number">1</span>)</span><br><span class="line">  %broadcast<span class="number">.3</span> = f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; broadcast(f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; %param_1<span class="number">.4</span>), dimensions=&#123;<span class="number">0</span>,<span class="number">1</span>&#125;, metadata=&#123;op_type=<span class="string">"Tile"</span> op_name=<span class="string">"Tile"</span>&#125;</span><br><span class="line">  %param_0<span class="number">.3</span> = f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; parameter(<span class="number">0</span>)</span><br><span class="line">  %broadcast<span class="number">.2</span> = f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; broadcast(f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; %param_0<span class="number">.3</span>), dimensions=&#123;<span class="number">1</span>,<span class="number">2</span>&#125;, metadata=&#123;op_type=<span class="string">"Tile"</span> op_name=<span class="string">"Tile_1"</span>&#125;</span><br><span class="line">  %multiply<span class="number">.0</span> = f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; multiply(f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; %broadcast<span class="number">.3</span>, f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; %broadcast<span class="number">.2</span>), metadata=&#123;op_type=<span class="string">"Mul"</span> op_name=<span class="string">"Mul"</span>&#125;</span><br><span class="line">  %constant_0 = f32[] constant(<span class="number">0</span>), metadata=&#123;op_type=<span class="string">"Sum"</span> op_name=<span class="string">"Sum"</span>&#125;</span><br><span class="line">  ROOT %reduce<span class="number">.0</span> = f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; reduce(f32[<span class="number">2</span>,<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">2</span>,<span class="number">1</span>,<span class="number">0</span>&#125; %multiply<span class="number">.0</span>, f32[] %constant_0), dimensions=&#123;<span class="number">1</span>&#125;, to_apply=%Sum-reduction<span class="number">.21</span>, metadata=&#123;op_type=<span class="string">"Sum"</span> op_name=<span class="string">"Sum"</span>&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">ENTRY %cluster_15890044661264488385__<span class="number">.30</span> (arg0<span class="number">.1</span>: f32[<span class="number">2</span>,<span class="number">2</span>], arg1<span class="number">.2</span>: f32[<span class="number">2</span>,<span class="number">2</span>]) -&gt; f32[<span class="number">2</span>,<span class="number">2</span>] &#123;</span><br><span class="line">  %arg1<span class="number">.2</span> = f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; parameter(<span class="number">1</span>), parameter_replication=&#123;<span class="literal">false</span>&#125;, metadata=&#123;op_name=<span class="string">"XLA_Args"</span>&#125;</span><br><span class="line">  %arg0<span class="number">.1</span> = f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; parameter(<span class="number">0</span>), parameter_replication=&#123;<span class="literal">false</span>&#125;, metadata=&#123;op_name=<span class="string">"XLA_Args"</span>&#125;</span><br><span class="line">  ROOT %fusion = f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; fusion(f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; %arg1<span class="number">.2</span>, f32[<span class="number">2</span>,<span class="number">2</span>]&#123;<span class="number">1</span>,<span class="number">0</span>&#125; %arg0<span class="number">.1</span>), kind=kLoop, calls=%fused_computation, metadata=&#123;op_type=<span class="string">"Sum"</span> op_name=<span class="string">"Sum"</span>&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>XLA 对图进行优化并没有将各个小运算合并用 dot 运算代替，因为对于一个编译器来说，识别当前做的运算是否能用更简洁的 API 代替是个复杂（甚至不知道是否可解）的问题。这种利用数学等价性进行更大胆的图替换的优化可能成为下一个要攻克的难点。</p>
+<h3><span id="23-利用for循环计算矩阵乘">2.3 利用for循环计算矩阵乘</span></h3>
+<p>这种方法对 Tensorflow 是最具有挑战性的，因为我们直接用 for 循环完成计算，Tensorflow 前端将根据 for 循环的次数增加计算节点。</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">gemm3</span><span class="params">(A, B)</span>:</span></span><br><span class="line">    tmp_ary = []</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(A.shape[<span class="number">0</span>]):</span><br><span class="line">        tmp_row = []</span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> range(B.shape[<span class="number">1</span>]):</span><br><span class="line">            tmp = A[i, <span class="number">0</span>] * B[<span class="number">0</span>, j]</span><br><span class="line">            <span class="keyword">for</span> k <span class="keyword">in</span> range(<span class="number">1</span>, A.shape[<span class="number">1</span>]):</span><br><span class="line">                tmp = tmp + A[i, k] * B[k, j]</span><br><span class="line">            tmp_row.append(tmp)</span><br><span class="line">        tmp_ary.append(tf.stack(tmp_row))</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> tf.stack(tmp_ary)</span><br></pre></td></tr></table></figure>
+<p>先看优化前的计算图：<br>
+<img src="./XLA%E6%8E%A2%E7%A9%B6-%E7%9F%A9%E9%98%B5%E4%B9%98%E6%B3%95/gemm3-pre.png" alt="优化前计算图"><br>
+再看优化后的计算图：<br>
+<img src="./XLA%E6%8E%A2%E7%A9%B6-%E7%9F%A9%E9%98%B5%E4%B9%98%E6%B3%95/gemm3-post.png" alt="优化后计算图"><br>
+计算图一下子就变得复杂了起来，那是因为 for 循环中的每次实例，都在向图中增加计算节点，这个图只是对于$2\times 2$矩阵乘法的，可以想象矩阵变大后图会有多复杂。事实上笔者在尝试$16\times 16$的矩阵乘时就无法正常可视化计算图了。$32 \times 32$以上的矩阵更是算不出来（因为处理计算图卡住）。</p>
+<p>这种实现方式实在是难为 Tensorflow 了。因为 Tensorflow 的基本运算单位是张量，尽量将运算都定义在张量上，并构造一个静态的运算图是其基本出发点，而现在的实现方法是每个 scalar 运算都对应了一个节点，且节点数与输入规模相关，这样构造的计算图异常巨大，且不可扩展，不可迁移。XLA 更是无法试别这种计算图的计算模式，用一个简单的 dot 代替这些节点。</p>
+<p>近期火热的深度学习编译器如 TVM 则是专门针对循环定义构建的，上面那种 for 循环形式的定义对于其是友好的，这也是 TVM 与 XLA 的不同之一。</p>
+<h2><span id="3-性能对比">3. 性能对比</span></h2>
+<p>上文介绍的三种实现方式具有不同的性能，第三种实现方式的性能不言而喻地低，因为基本的图构建都无法完成，所以就不列在比较之中了。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">gemm1:</span><br><span class="line">     (<span class="number">1</span> x <span class="number">1</span>): <span class="number">0.498796</span>ms</span><br><span class="line">     (<span class="number">2</span> x <span class="number">2</span>): <span class="number">0.482011</span>ms</span><br><span class="line">     (<span class="number">4</span> x <span class="number">4</span>): <span class="number">0.465155</span>ms</span><br><span class="line">     (<span class="number">8</span> x <span class="number">8</span>): <span class="number">0.442171</span>ms</span><br><span class="line">     (<span class="number">16</span> x <span class="number">16</span>): <span class="number">0.475311</span>ms</span><br><span class="line">     (<span class="number">32</span> x <span class="number">32</span>): <span class="number">0.481582</span>ms</span><br><span class="line">     (<span class="number">64</span> x <span class="number">64</span>): <span class="number">0.474691</span>ms</span><br><span class="line">     (<span class="number">128</span> x <span class="number">128</span>): <span class="number">0.490928</span>ms</span><br><span class="line">     (<span class="number">256</span> x <span class="number">256</span>): <span class="number">0.577831</span>ms</span><br><span class="line">     (<span class="number">512</span> x <span class="number">512</span>): <span class="number">1.005220</span>ms</span><br><span class="line">     (<span class="number">1024</span> x <span class="number">1024</span>): <span class="number">2.768564</span>ms</span><br><span class="line">     (<span class="number">2048</span> x <span class="number">2048</span>): <span class="number">9.252787</span>ms</span><br><span class="line">     (<span class="number">4096</span> x <span class="number">4096</span>): <span class="number">43.600631</span>ms</span><br><span class="line">     (<span class="number">8192</span> x <span class="number">8192</span>): <span class="number">228.450990</span>ms</span><br><span class="line"></span><br><span class="line">gemm2:</span><br><span class="line">     (<span class="number">1</span> x <span class="number">1</span>): <span class="number">0.508928</span>ms</span><br><span class="line">     (<span class="number">2</span> x <span class="number">2</span>): <span class="number">0.509024</span>ms</span><br><span class="line">     (<span class="number">4</span> x <span class="number">4</span>): <span class="number">0.528526</span>ms</span><br><span class="line">     (<span class="number">8</span> x <span class="number">8</span>): <span class="number">0.489831</span>ms</span><br><span class="line">     (<span class="number">16</span> x <span class="number">16</span>): <span class="number">0.492191</span>ms</span><br><span class="line">     (<span class="number">32</span> x <span class="number">32</span>): <span class="number">0.510383</span>ms</span><br><span class="line">     (<span class="number">64</span> x <span class="number">64</span>): <span class="number">0.511551</span>ms</span><br><span class="line">     (<span class="number">128</span> x <span class="number">128</span>): <span class="number">0.538731</span>ms</span><br><span class="line">     (<span class="number">256</span> x <span class="number">256</span>): <span class="number">0.743008</span>ms</span><br><span class="line">     (<span class="number">512</span> x <span class="number">512</span>): <span class="number">1.382422</span>ms</span><br><span class="line">     (<span class="number">1024</span> x <span class="number">1024</span>): <span class="number">7.267666</span>ms</span><br><span class="line">     (<span class="number">2048</span> x <span class="number">2048</span>): <span class="number">102.449155</span>ms</span><br><span class="line">     (<span class="number">4096</span> x <span class="number">4096</span>): <span class="number">804.755259</span>ms</span><br><span class="line">     (<span class="number">8192</span> x <span class="number">8192</span>): <span class="number">6476.903272</span>ms</span><br></pre></td></tr></table></figure>
+<p>可以发现当矩阵大小超过512后，第二种方法产生了明现的劣势。这也体现了单独原子性地调用 API 的重要性。这可以抽象为一个划归问题，即准备好了许多高性能的运算实现（如cuDNN），但是具体的运算图如何划归到合适的运算 API 上是个问题，现在的图优化仅仅做了简单的算术化简以及算子合并，却不能发掘隐藏的激进的规约机会，就会错过优化机会。</p>
+<h2><span id="4-总结">4. 总结</span></h2>
+<p>本文旨在窥探 XLA 的优化能力边界，结合当前常见的新算子无原子性 API 支持时需要用已有 API 拼凑的场景，利用矩阵乘法作为一个例子，初步得出以下结论：</p>
+<ul>
+<li>XLA 的图优化很保守，至少难以发掘图上运算模式规约的可能性。当然，这也是所有目前的深度学习编译器面临的挑战。</li>
+<li>单独调用一个 API 比拼凑 API 更具有优势。这本质体现了库支持问题。</li>
+</ul>
+
+                
+
+                <hr>
+                <!-- Pager -->
+                <ul class="pager">
+                    
+                    
+                        <li class="next">
+                            <a href="/2019/10/23/Tensorflow-XLA-探究/" data-toggle="tooltip" data-placement="top" title="Tensorflow/XLA 探究">Next Post &rarr;</a>
+                        </li>
+                    
+                </ul>
+
+                <!-- duoshuo Share start -->
+                
+                <!-- 多说 Share end-->
+
+                <!-- 多说评论框 start -->
+                
+                <!-- 多说评论框 end -->
+
+                <!-- disqus comment start -->
+                
+                    <div class="comment">
+                        <div id="disqus_thread" class="disqus-thread"></div>
+                    </div>
+                
+                <!-- disqus comment end -->
+            </div>
+            
+            <!-- Tabe of Content -->
+            <!-- Table of Contents -->
+
+    
+      <aside id="sidebar">
+        <div id="toc" class="toc-article">
+        <strong class="toc-title">Contents</strong>
+        
+          <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.</span> <span class="toc-nav-text">XLA 探究：矩阵乘法</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.1.</span> <span class="toc-nav-text">1. 矩阵乘法</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.2.</span> <span class="toc-nav-text">2. 在 Tensorflow 中定义矩阵乘法</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.2.1.</span> <span class="toc-nav-text">2.1 直接调用 matmul API</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.2.2.</span> <span class="toc-nav-text">2.2 利用升维降维计算矩阵乘法</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.2.3.</span> <span class="toc-nav-text">2.3 利用for循环计算矩阵乘</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.3.</span> <span class="toc-nav-text">3. 性能对比</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.4.</span> <span class="toc-nav-text">4. 总结</span></a></li></ol></li></ol>
+        
+        </div>
+      </aside>
+    
+
+                
+            <!-- Sidebar Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                sidebar-container">
+
+                <!-- Featured Tags -->
+                
+                <section>
+                    <!-- no hr -->
+                    <h5><a href="/tags/">FEATURED TAGS</a></h5>
+                    <div class="tags">
+                       
+                          <a class="tag" href="/tags/#Tensorflow, XLA, 深度学习编译器，矩阵乘法" title="Tensorflow, XLA, 深度学习编译器，矩阵乘法">Tensorflow, XLA, 深度学习编译器，矩阵乘法</a>
+                        
+                    </div>
+                </section>
+                
+
+                <!-- Friends Blog -->
+                
+                <hr>
+                <h5>FRIENDS</h5>
+                <ul class="list-inline">
+
+                    
+                        <li><a href="http://beantech.org" target="_blank">Bean Tech</a></li>
+                    
+                        <li><a href="http://blog.kaijun.rocks" target="_blank">Kaijun&#39;s Blog</a></li>
+                    
+                        <li><a href="http://huangxuan.me" target="_blank">Hux Blog</a></li>
+                    
+                        <li><a href="#" target="_blank">It Helps SEO</a></li>
+                    
+                </ul>
+                
+            </div>
+        </div>
+    </div>
+</article>
+
+
+
+
+<!-- disqus embedded js code start (one page only need to embed once) -->
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES * * */
+    var disqus_shortname = "your-disqus-ID";
+    var disqus_identifier = "http://yoursite-url/2019/10/28/XLA探究-矩阵乘法/";
+    var disqus_url = "http://yoursite-url/2019/10/28/XLA探究-矩阵乘法/";
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<!-- disqus embedded js code start end -->
+
+
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+<!-- anchor-js, Doc:http://bryanbraun.github.io/anchorjs/'ℬ' -->
+<script>
+    async("https://cdn.bootcss.com/anchor-js/1.1.1/anchor.min.js",function(){
+        anchors.options = {
+          visible: 'hover',
+          placement: 'left',
+          icon: '♛'
+        };
+        anchors.add().remove('.intro-header h1').remove('.subheading').remove('.sidebar-container h5');
+    })
+</script>
+<style>
+    /* place left on bigger screen */
+    @media all and (min-width: 800px) {
+        .anchorjs-link{
+            position: absolute;
+            left: -0.75em;
+            font-size: 1.1em;
+            margin-top : -0.1em;
+        }
+    }
+</style>
+
+
+
+    <!-- Footer -->
+    <!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <ul class="list-inline text-center">
+                
+                
+                
+                    <li>
+                        <a target="_blank" href="https://www.zhihu.com/people/zheng-si-ze-45">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa  fa-stack-1x fa-inverse">知</i>
+                            </span>
+                        </a>
+                    </li>
+                
+
+                
+                    <li>
+                        <a target="_blank" href="http://weibo.com/zhengCHNO">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-weibo fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                
+
+                
+                    <li>
+                        <a target="_blank" href="https://www.facebook.com/Sz.M.Zheng">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-facebook fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                
+
+                
+                    <li>
+                        <a target="_blank" href="https://github.com/KnowingNothing">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                
+
+                
+
+                </ul>
+                <p class="copyright text-muted">
+                    Copyright &copy; Sz Zheng 2019 
+                    <br>
+                    Theme by <a href="http://huangxuan.me">Hux</a> 
+                    <span style="display: inline-block; margin: 0 5px;">
+                        <i class="fa fa-heart"></i>
+                    </span> 
+                    re-Ported by <a href="http://beantech.org">BeanTech</a> | 
+                    <iframe style="margin-left: 2px; margin-bottom:-5px;" frameborder="0" scrolling="0" width="91px" height="20px" src="https://ghbtns.com/github-btn.html?user=YenYuHsuan&repo=hexo-theme-beantech&type=star&count=true">
+                    </iframe>
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- jQuery -->
+<script src="/js/jquery.min.js"></script>
+
+<!-- Bootstrap Core JavaScript -->
+<script src="/js/bootstrap.min.js"></script>
+
+<!-- Custom Theme JavaScript -->
+<script src="/js/hux-blog.min.js"></script>
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+
+<!-- 
+     Because of the native support for backtick-style fenced code blocks 
+     right within the Markdown is landed in Github Pages, 
+     From V1.6, There is no need for Highlight.js, 
+     so Huxblog drops it officially.
+
+     - https://github.com/blog/2100-github-pages-now-faster-and-simpler-with-jekyll-3-0  
+     - https://help.github.com/articles/creating-and-highlighting-code-blocks/    
+-->
+<!--
+    <script>
+        async("http://cdn.bootcss.com/highlight.js/8.6/highlight.min.js", function(){
+            hljs.initHighlightingOnLoad();
+        })
+    </script>
+    <link href="http://cdn.bootcss.com/highlight.js/8.6/styles/github.min.css" rel="stylesheet">
+-->
+
+
+<!-- jquery.tagcloud.js -->
+<script>
+    // only load tagcloud.js in tag.html
+    if($('#tag_cloud').length !== 0){
+        async("http://yoursite-url/js/jquery.tagcloud.js",function(){
+            $.fn.tagcloud.defaults = {
+                //size: {start: 1, end: 1, unit: 'em'},
+                color: {start: '#bbbbee', end: '#0085a1'},
+            };
+            $('#tag_cloud a').tagcloud();
+        })
+    }
+</script>
+
+<!--fastClick.js -->
+<script>
+    async("https://cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+        var $nav = document.querySelector("nav");
+        if($nav) FastClick.attach($nav);
+    })
+</script>
+
+
+<!-- Google Analytics -->
+
+
+<script>
+    // dynamic User by Hux
+    var _gaId = 'UA-XXXXXXXX-X';
+    var _gaDomain = 'yoursite';
+
+    // Originial
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+    ga('create', _gaId, _gaDomain);
+    ga('send', 'pageview');
+</script>
+
+
+
+
+<!-- Baidu Tongji -->
+
+
+
+
+
+
+	<a id="rocket" href="#top" class=""></a>
+	<script type="text/javascript" src="/js/totop.js?v=1.0.0" async=""></script>
+    <script type="text/javascript" src="/js/toc.js?v=1.0.0" async=""></script>
+<!-- Image to hack wechat -->
+<img src="http://yoursite-url/img/icon_wechat.png" width="0" height="0" />
+<!-- Migrate from head to bottom, no longer block render and still work -->
+
+</body>
+
+</html>

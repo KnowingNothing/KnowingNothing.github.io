@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- Head tag -->
+<head><meta name="generator" content="Hexo 3.8.0">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="google-site-verification" content="xBT4GhYoi5qRD5tr338pgPM5OWHHIDR6mNg1a3euekI">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="keyword" content="Computer science">
+    <link rel="shortcut icon" href="/img/main-photo.jpg">
+    <!-- Place this tag in your head or just before your close body tag. -->
+    <script async defer src="https://buttons.github.io/buttons.js"></script>
+    <title>
+        
+          TVM中如何tune卷积 - Sz Zheng | PKU
+        
+    </title>
+
+    <link rel="canonical" href="http://yoursite-url/2019/03/13/TVM中如何tune卷积/">
+
+    <!-- Bootstrap Core CSS -->
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+
+    <!-- Custom CSS --> 
+    <link rel="stylesheet" href="/css/beantech.min.css">
+    
+    <!-- Pygments Highlight CSS -->
+    <link rel="stylesheet" href="/css/highlight.css">
+
+    <link rel="stylesheet" href="/css/widget.css">
+
+    <link rel="stylesheet" href="/css/rocket.css">
+
+    <link rel="stylesheet" href="/css/signature.css">
+
+    <link rel="stylesheet" href="/css/toc.css">
+
+    <!-- Custom Fonts -->
+    <!-- <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet" type="text/css"> -->
+    <!-- Hux change font-awesome CDN to qiniu -->
+    <link href="https://cdn.staticfile.org/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+
+    <!-- Hux Delete, sad but pending in China
+    <link href='http://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/
+    css'>
+    -->
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <!-- ga & ba script hoook -->
+    <script></script>
+</head>
+
+
+<!-- hack iOS CSS :active style -->
+<body ontouchstart="">
+	<!-- Modified by Yu-Hsuan Yen -->
+<!-- Post Header -->
+<style type="text/css">
+    header.intro-header{
+        
+            background-image: url('img.jpg')
+            /*post*/
+        
+    }
+    
+    #signature{
+        background-image: url('/img/signature/signature.png');
+    }
+    
+</style>
+
+<header class="intro-header">
+    <!-- Signature -->
+    <div id="signature">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                
+                    <div class="post-heading">
+                        <div class="tags">
+                            
+                              <a class="tag" href="/tags/#TVM" title="TVM">TVM</a>
+                            
+                        </div>
+                        <h1>TVM中如何tune卷积</h1>
+                        <h2 class="subheading"></h2>
+                        <span class="meta">
+                            Posted by Sz Zheng on
+                            2019-03-13
+                        </span>
+                    </div>
+                
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+	
+    <!-- Navigation -->
+<nav class="navbar navbar-default navbar-custom navbar-fixed-top">
+    <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header page-scroll">
+            <button type="button" class="navbar-toggle">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/">Secretly beautiful</a>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <!-- Known Issue, found by Hux:
+            <nav>'s height woule be hold on by its content.
+            so, when navbar scale out, the <nav> will cover tags.
+            also mask any touch event of tags, unfortunately.
+        -->
+        <div id="huxblog_navbar">
+            <div class="navbar-collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="/">Home</a>
+                    </li>
+
+                    
+
+                        
+                    
+
+                        
+                        <li>
+                            <a href="/archive/">Archives</a>
+                        </li>
+                        
+                    
+
+                        
+                        <li>
+                            <a href="/about/">About</a>
+                        </li>
+                        
+                    
+
+                        
+                        <li>
+                            <a href="/tags/">Tags</a>
+                        </li>
+                        
+                    
+                    
+                </ul>
+            </div>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+    <!-- /.container -->
+</nav>
+<script>
+    // Drop Bootstarp low-performance Navbar
+    // Use customize navbar with high-quality material design animation
+    // in high-perf jank-free CSS3 implementation
+    var $body   = document.body;
+    var $toggle = document.querySelector('.navbar-toggle');
+    var $navbar = document.querySelector('#huxblog_navbar');
+    var $collapse = document.querySelector('.navbar-collapse');
+
+    $toggle.addEventListener('click', handleMagic)
+    function handleMagic(e){
+        if ($navbar.className.indexOf('in') > 0) {
+        // CLOSE
+            $navbar.className = " ";
+            // wait until animation end.
+            setTimeout(function(){
+                // prevent frequently toggle
+                if($navbar.className.indexOf('in') < 0) {
+                    $collapse.style.height = "0px"
+                }
+            },400)
+        }else{
+        // OPEN
+            $collapse.style.height = "auto"
+            $navbar.className += " in";
+        }
+    }
+</script>
+
+
+    <!-- Main Content -->
+    <!-- Modify by Yu-Hsuan Yen -->
+
+<!-- Post Content -->
+<article>
+    <div class="container">
+        <div class="row">
+
+            <!-- Post Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                post-container">
+
+                <h1><span id="tvm中如何tune卷积">TVM中如何tune卷积</span></h1>
+<blockquote>
+<p>TVM是针对深度学习而设计的全栈式编译器，以深度学习计算图为输入（可以是tensorflow, mxnet, pytorch, caffe等框架的计算图），经过两层优化：图优化和算子优化，生成底层代码并运行。<br>
+本文是关于TVM探究的第一篇记录，但不会详细介绍TVM，只提及与本文内容有关的部分，其余的留作后续做介绍。</p>
+</blockquote>
+<h2><span id="tvm的tuner">TVM的tuner</span></h2>
+<p>TVM提供一个auto-tuner来调优算子。传统的机器学习框架往往是借助现成的算子库，比如CPU上的Eigen和MKL，GPU上的cuBLAS和cuDNN等。但是TVM认为这样做的问题在于算子库的算子往往是针对特定场景优化，场景改变（如计算设备变化或输入规模变化）时就不能保证高效，甚至不能使用。所以TVM设想一个动态生成代码的过程，上层只定义算子的数学含义，比如用函数式语言定义算法，称为Compute，底层的具体实现则针对不同的硬件自动完成。目前TVM需要编程者指定想要的实现方法，拿矩阵乘法为例，编程者可以指定这个矩阵乘算法用分块方法，之后TVM会自动完成代码生成。这种实现方法被称为Schedule，其包含的原语种类很多，常用的有20种左右。</p>
+<p>虽然有原语很方便，但是有时实现细节需要提供数字信息，比如即使知道要矩阵分块，分块大小仍然有待商榷，如果让编程者决定，他恐怕要尝试多组可能，然后选择最好的。TVM提供了自动工具完成这种参数tune的过程，称为AutoTVM。本文就是探究如何在x86 CPU上tune一个二维卷积，算法为direct卷积（六重循环）。TVM的官方教程中有tune卷积神经网络的例子，但是本文想只tune一个卷积算子，所以入手点在于改造TVM的官方例子。<a href="https://docs.tvm.ai/tutorials/autotvm/tune_relay_x86.html" target="_blank" rel="noopener">官方例子在这里</a></p>
+<h2><span id="官方例子阅读">官方例子阅读</span></h2>
+<p>在官方例子里，大致可以分为两部分，一部分是得到Compute，以及其上定义的Tune Space，整体可以称为template，另一方面是用tuner去tune这个template。这段代码：</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_network</span><span class="params">(name, batch_size)</span>:</span></span><br><span class="line">    <span class="string">"""Get the symbol definition and random weight of a network"""</span></span><br><span class="line">    input_shape = (batch_size, <span class="number">3</span>, <span class="number">224</span>, <span class="number">224</span>)</span><br><span class="line">    output_shape = (batch_size, <span class="number">1000</span>)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> <span class="string">"resnet"</span> <span class="keyword">in</span> name:</span><br><span class="line">        n_layer = int(name.split(<span class="string">'-'</span>)[<span class="number">1</span>])</span><br><span class="line">        net, params = relay.testing.resnet.get_workload(num_layers=n_layer, batch_size=batch_size, dtype=dtype)</span><br><span class="line">    <span class="keyword">elif</span> <span class="string">"vgg"</span> <span class="keyword">in</span> name:</span><br><span class="line">        n_layer = int(name.split(<span class="string">'-'</span>)[<span class="number">1</span>])</span><br><span class="line">        net, params = relay.testing.vgg.get_workload(num_layers=n_layer, batch_size=batch_size, dtype=dtype)</span><br><span class="line">    <span class="keyword">elif</span> name == <span class="string">'mobilenet'</span>:</span><br><span class="line">        net, params = relay.testing.mobilenet.get_workload(batch_size=batch_size, dtype=dtype)</span><br><span class="line">    <span class="keyword">elif</span> name == <span class="string">'squeezenet_v1.1'</span>:</span><br><span class="line">        net, params = relay.testing.squeezenet.get_workload(batch_size=batch_size, version=<span class="string">'1.1'</span>, dtype=dtype)</span><br><span class="line">    <span class="keyword">elif</span> name == <span class="string">'inception_v3'</span>:</span><br><span class="line">        input_shape = (<span class="number">1</span>, <span class="number">3</span>, <span class="number">299</span>, <span class="number">299</span>)</span><br><span class="line">        net, params = relay.testing.inception_v3.get_workload(batch_size=batch_size, dtype=dtype)</span><br><span class="line">    <span class="keyword">elif</span> name == <span class="string">'mxnet'</span>:</span><br><span class="line">        <span class="comment"># an example for mxnet model</span></span><br><span class="line">        <span class="keyword">from</span> mxnet.gluon.model_zoo.vision <span class="keyword">import</span> get_model</span><br><span class="line">        block = get_model(<span class="string">'resnet18_v1'</span>, pretrained=<span class="keyword">True</span>)</span><br><span class="line">        net, params = relay.frontend.from_mxnet(block, shape=&#123;<span class="string">'data'</span>: input_shape&#125;, dtype=dtype)</span><br><span class="line">        net = relay.Function(net.params, relay.nn.softmax(net.body), <span class="keyword">None</span>, net.type_params, net.attrs)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">raise</span> ValueError(<span class="string">"Unsupported network: "</span> + name)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> net, params, input_shape, output_shape</span><br></pre></td></tr></table></figure>
+<p>就是在得到template，但是直接得到了网络，想要探究如何只得到一个算子，需要看看relay.testing.resnet里究竟有什么。通过找寻源码相关内容，可以看到在tvm/relay/testing/resnet.py中</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">body = layers.conv2d(</span><br><span class="line">            data=data, channels=filter_list[<span class="number">0</span>], kernel_size=(<span class="number">7</span>, <span class="number">7</span>),</span><br><span class="line">            strides=(<span class="number">2</span>, <span class="number">2</span>), padding=(<span class="number">3</span>, <span class="number">3</span>), name=<span class="string">"conv0"</span>)</span><br></pre></td></tr></table></figure>
+<p>一句调用了卷积，那么继续追寻layers.conv2d在做什么，翻开源码，可以发现在tvm/relay/op/nn/nn.py中：</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">return</span> _make.conv2d(data, weight, strides, padding, dilation,</span><br><span class="line">                        groups, channels, kernel_size, data_layout,</span><br><span class="line">                        kernel_layout, out_layout, out_dtype)</span><br></pre></td></tr></table></figure>
+<p>这样就是进入了C语言部分调用。对于TVM来说，这样的调用本质上做的事情是根据function的名字在已注册的function字典中寻找，然后将其返回。所以TVM一定在某个地方定义了conv2d这个函数。<br>
+全项目搜索conv2d这个名字，其实只有一句</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">NNVM_REGISTER_OP(conv2d)</span><br></pre></td></tr></table></figure>
+<p>最符合要找的目标。跟踪这一句，发现NNVM中定义的conv2d只是个符号，会在从计算图转化为算子时被实例化，而实例化的过程用的topi中定义的算子。于是在topi中寻找conv2d，发现topi中有关于conv2d的Compute定义和Schedule template，而且在tvm/autotvm/task/topi_integration.py中注册了多个卷积算子。到这里就可以着手更改官方例子来只tune一个卷积了。</p>
+<h2><span id="更改后的代码">更改后的代码</span></h2>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_operator</span><span class="params">(data_shape, out_channel, kernel_size, strides, padding, dtype=<span class="string">"float32"</span>)</span>:</span></span><br><span class="line">    data = relay.var(<span class="string">"data"</span>, shape=data_shape, dtype=dtype)</span><br><span class="line">    body = layers.conv2d(data=data, channels=out_channel, kernel_size=kernel_size, strides=strides, padding=padding, name=<span class="string">"conv2d"</span>)</span><br><span class="line">    <span class="keyword">return</span> relay.Function(relay.ir_pass.free_vars(body), body)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_workload</span><span class="params">(batch_size, image_shape, out_channel, kernel_size=<span class="params">(<span class="number">3</span>, <span class="number">3</span>)</span>, strides=<span class="params">(<span class="number">1</span>, <span class="number">1</span>)</span>, padding=<span class="params">(<span class="number">1</span>, <span class="number">1</span>)</span>, dtype=<span class="string">"float32"</span>)</span>:</span></span><br><span class="line">    data_shape = (batch_size, *image_shape)</span><br><span class="line">    op = get_operator(data_shape, out_channel, kernel_size, strides, padding, dtype=dtype)</span><br><span class="line">    sym, params = create_workload(op)</span><br><span class="line">    <span class="keyword">return</span> sym, params, data_shape</span><br></pre></td></tr></table></figure>
+<p>用来得到卷积算子，模仿样例中的写法</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">target = <span class="string">"llvm"</span></span><br><span class="line">batch_size = <span class="number">1</span></span><br><span class="line">image_shape = (<span class="number">256</span>, <span class="number">14</span>, <span class="number">14</span>)</span><br><span class="line">out_channel = <span class="number">512</span></span><br><span class="line">kernel_size = (<span class="number">3</span>, <span class="number">3</span>)</span><br><span class="line">strides = (<span class="number">1</span>, <span class="number">1</span>)</span><br><span class="line">padding = (<span class="number">1</span>, <span class="number">1</span>)</span><br><span class="line">dtype = <span class="string">"float32"</span></span><br><span class="line">log_file = <span class="string">"topi_conv2d.log"</span></span><br><span class="line"></span><br><span class="line">num_threads = <span class="number">1</span></span><br><span class="line">os.environ[<span class="string">"TVM_NUM_THREADS"</span>] = str(num_threads)</span><br><span class="line"></span><br><span class="line">tuning_option = &#123;</span><br><span class="line">    <span class="string">"log_filename"</span>: log_file,</span><br><span class="line">    <span class="string">"tuner"</span>: <span class="string">"gridsearch"</span>,</span><br><span class="line">    <span class="string">"early_stopping"</span>: <span class="keyword">None</span>,</span><br><span class="line">    <span class="string">"measure_option"</span>: autotvm.measure_option(</span><br><span class="line">        builder=autotvm.LocalBuilder(),</span><br><span class="line">        runner=autotvm.LocalRunner(number=<span class="number">10</span>, repeat=<span class="number">1</span>, min_repeat_ms=<span class="number">1000</span>)</span><br><span class="line">    )</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>一些选项，根据具体情况更改</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">tune_kernels</span><span class="params">(tasks, measure_option, tuner=<span class="string">"gridsearch"</span>, early_stopping=None, log_filename=<span class="string">"tuning.log"</span>)</span>:</span></span><br><span class="line">    <span class="keyword">for</span> i, tsk <span class="keyword">in</span> enumerate(tasks):</span><br><span class="line">        prefix = <span class="string">"[Task %2d/%2d] "</span> % (i + <span class="number">1</span>, len(tasks))</span><br><span class="line">        op_name = tsk.workload[<span class="number">0</span>]</span><br><span class="line">        task = autotvm.task.create(<span class="string">"topi_nn_conv2d"</span>, args=tsk.args, target=target, template_key=<span class="string">"direct"</span>)</span><br><span class="line">        task.workload = tsk.workload</span><br><span class="line"></span><br><span class="line">        <span class="comment"># create tuner</span></span><br><span class="line">        <span class="keyword">if</span> tuner == <span class="string">'xgb'</span> <span class="keyword">or</span> tuner == <span class="string">'xgb-rank'</span>:</span><br><span class="line">            tuner_obj = XGBTuner(task, loss_type=<span class="string">'rank'</span>)</span><br><span class="line">        <span class="keyword">elif</span> tuner == <span class="string">'ga'</span>:</span><br><span class="line">            tuner_obj = GATuner(task, pop_size=<span class="number">50</span>)</span><br><span class="line">        <span class="keyword">elif</span> tuner == <span class="string">'random'</span>:</span><br><span class="line">            tuner_obj = RandomTuner(task)</span><br><span class="line">        <span class="keyword">elif</span> tuner == <span class="string">'gridsearch'</span>:</span><br><span class="line">            tuner_obj = GridSearchTuner(task)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">raise</span> ValueError(<span class="string">"Invalid tuner: "</span> + tuner)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># do tuning</span></span><br><span class="line">        n_trial = len(task.config_space)</span><br><span class="line">        print(<span class="string">"trials="</span>, n_trial)</span><br><span class="line">        tuner_obj.tune(n_trial=n_trial,</span><br><span class="line">                       early_stopping=early_stopping,</span><br><span class="line">                       measure_option=measure_option,</span><br><span class="line">                       callbacks=[</span><br><span class="line">                           autotvm.callback.progress_bar(n_trial, prefix=prefix),</span><br><span class="line">                           autotvm.callback.log_to_file(log_filename)])</span><br></pre></td></tr></table></figure>
+<p>从官方例子改的，其中最重要的是指明要用哪个卷积算法，这里指定了&quot;topi_nn_conv2d&quot;，其余选择要看/tvm/autotvm/task/task.py中的TASK_TABLE中有哪些，可以自己print出来看看，记得先调用extract_from_program再print，不然TASK_TABLE中没有添加后续注册的任务。</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">tune_and_evaluate</span><span class="params">(tuning_opt)</span>:</span></span><br><span class="line">    op, params, data_shape = get_workload(batch_size, image_shape, out_channel, kernel_size, strides, padding)</span><br><span class="line">    tasks = autotvm.task.extract_from_program(op, target=target, params=params, ops=(relay.op.nn.conv2d,))</span><br><span class="line"></span><br><span class="line">    print(<span class="string">"Tuning..."</span>)</span><br><span class="line">    tune_kernels(tasks, **tuning_opt)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">with</span> autotvm.apply_history_best(log_file):</span><br><span class="line">        print(<span class="string">"Compile..."</span>)</span><br><span class="line">        <span class="keyword">with</span> relay.build_config(opt_level=<span class="number">3</span>):</span><br><span class="line">            graph, lib, params = relay.build_module.build(op, target=target, params=params)</span><br><span class="line"></span><br><span class="line">        ctx = tvm.cpu()</span><br><span class="line">        data_tvm = tvm.nd.array((np.random.uniform(size=data_shape)).astype(dtype))</span><br><span class="line">        module = runtime.create(graph, lib, ctx)</span><br><span class="line">        module.set_input(<span class="string">"data"</span>, data_tvm)</span><br><span class="line">        module.set_input(**params)</span><br><span class="line"></span><br><span class="line">        <span class="comment"># evaluate</span></span><br><span class="line">        print(<span class="string">"Evaluate inference time cost..."</span>)</span><br><span class="line">        ftimer = module.module.time_evaluator(<span class="string">"run"</span>, ctx, number=<span class="number">10</span>, repeat=<span class="number">1</span>)</span><br><span class="line">        prof_res = np.array(ftimer().results) * <span class="number">1e3</span></span><br><span class="line">        print(<span class="string">"Time cost is: "</span>, np.mean(prof_res))</span><br></pre></td></tr></table></figure>
+<p>最后直接tune就好。</p>
+
+                
+
+                <hr>
+                <!-- Pager -->
+                <ul class="pager">
+                    
+                        <li class="previous">
+                            <a href="/2019/03/16/在TVM中写in-place计算/" data-toggle="tooltip" data-placement="top" title="在TVM中写in-place计算">&larr; Previous Post</a>
+                        </li>
+                    
+                    
+                        <li class="next">
+                            <a href="/2019/03/12/搭建github博客方法/" data-toggle="tooltip" data-placement="top" title="搭建github博客方法">Next Post &rarr;</a>
+                        </li>
+                    
+                </ul>
+
+                <!-- duoshuo Share start -->
+                
+                <!-- 多说 Share end-->
+
+                <!-- 多说评论框 start -->
+                
+                <!-- 多说评论框 end -->
+
+                <!-- disqus comment start -->
+                
+                    <div class="comment">
+                        <div id="disqus_thread" class="disqus-thread"></div>
+                    </div>
+                
+                <!-- disqus comment end -->
+            </div>
+            
+            <!-- Tabe of Content -->
+            <!-- Table of Contents -->
+
+    
+      <aside id="sidebar">
+        <div id="toc" class="toc-article">
+        <strong class="toc-title">Contents</strong>
+        
+          <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.</span> <span class="toc-nav-text">TVM中如何tune卷积</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.1.</span> <span class="toc-nav-text">TVM的tuner</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.2.</span> <span class="toc-nav-text">官方例子阅读</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.3.</span> <span class="toc-nav-text">更改后的代码</span></a></li></ol></li></ol>
+        
+        </div>
+      </aside>
+    
+
+                
+            <!-- Sidebar Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                sidebar-container">
+
+                <!-- Featured Tags -->
+                
+                <section>
+                    <!-- no hr -->
+                    <h5><a href="/tags/">FEATURED TAGS</a></h5>
+                    <div class="tags">
+                       
+                          <a class="tag" href="/tags/#TVM" title="TVM">TVM</a>
+                        
+                    </div>
+                </section>
+                
+
+                <!-- Friends Blog -->
+                
+                <hr>
+                <h5>FRIENDS</h5>
+                <ul class="list-inline">
+
+                    
+                        <li><a href="http://beantech.org" target="_blank">Bean Tech</a></li>
+                    
+                        <li><a href="http://blog.kaijun.rocks" target="_blank">Kaijun&#39;s Blog</a></li>
+                    
+                        <li><a href="http://huangxuan.me" target="_blank">Hux Blog</a></li>
+                    
+                        <li><a href="#" target="_blank">It Helps SEO</a></li>
+                    
+                </ul>
+                
+            </div>
+        </div>
+    </div>
+</article>
+
+
+
+
+<!-- disqus embedded js code start (one page only need to embed once) -->
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES * * */
+    var disqus_shortname = "your-disqus-ID";
+    var disqus_identifier = "http://yoursite-url/2019/03/13/TVM中如何tune卷积/";
+    var disqus_url = "http://yoursite-url/2019/03/13/TVM中如何tune卷积/";
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<!-- disqus embedded js code start end -->
+
+
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+<!-- anchor-js, Doc:http://bryanbraun.github.io/anchorjs/'ℬ' -->
+<script>
+    async("https://cdn.bootcss.com/anchor-js/1.1.1/anchor.min.js",function(){
+        anchors.options = {
+          visible: 'hover',
+          placement: 'left',
+          icon: '♛'
+        };
+        anchors.add().remove('.intro-header h1').remove('.subheading').remove('.sidebar-container h5');
+    })
+</script>
+<style>
+    /* place left on bigger screen */
+    @media all and (min-width: 800px) {
+        .anchorjs-link{
+            position: absolute;
+            left: -0.75em;
+            font-size: 1.1em;
+            margin-top : -0.1em;
+        }
+    }
+</style>
+
+
+
+    <!-- Footer -->
+    <!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <ul class="list-inline text-center">
+                
+                
+                
+                    <li>
+                        <a target="_blank" href="https://www.zhihu.com/people/zheng-si-ze-45">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa  fa-stack-1x fa-inverse">知</i>
+                            </span>
+                        </a>
+                    </li>
+                
+
+                
+                    <li>
+                        <a target="_blank" href="http://weibo.com/zhengCHNO">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-weibo fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                
+
+                
+                    <li>
+                        <a target="_blank" href="https://www.facebook.com/Sz.M.Zheng">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-facebook fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                
+
+                
+                    <li>
+                        <a target="_blank" href="https://github.com/KnowingNothing">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                
+
+                
+
+                </ul>
+                <p class="copyright text-muted">
+                    Copyright &copy; Sz Zheng 2019 
+                    <br>
+                    Theme by <a href="http://huangxuan.me">Hux</a> 
+                    <span style="display: inline-block; margin: 0 5px;">
+                        <i class="fa fa-heart"></i>
+                    </span> 
+                    re-Ported by <a href="http://beantech.org">BeanTech</a> | 
+                    <iframe style="margin-left: 2px; margin-bottom:-5px;" frameborder="0" scrolling="0" width="91px" height="20px" src="https://ghbtns.com/github-btn.html?user=YenYuHsuan&repo=hexo-theme-beantech&type=star&count=true">
+                    </iframe>
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- jQuery -->
+<script src="/js/jquery.min.js"></script>
+
+<!-- Bootstrap Core JavaScript -->
+<script src="/js/bootstrap.min.js"></script>
+
+<!-- Custom Theme JavaScript -->
+<script src="/js/hux-blog.min.js"></script>
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+
+<!-- 
+     Because of the native support for backtick-style fenced code blocks 
+     right within the Markdown is landed in Github Pages, 
+     From V1.6, There is no need for Highlight.js, 
+     so Huxblog drops it officially.
+
+     - https://github.com/blog/2100-github-pages-now-faster-and-simpler-with-jekyll-3-0  
+     - https://help.github.com/articles/creating-and-highlighting-code-blocks/    
+-->
+<!--
+    <script>
+        async("http://cdn.bootcss.com/highlight.js/8.6/highlight.min.js", function(){
+            hljs.initHighlightingOnLoad();
+        })
+    </script>
+    <link href="http://cdn.bootcss.com/highlight.js/8.6/styles/github.min.css" rel="stylesheet">
+-->
+
+
+<!-- jquery.tagcloud.js -->
+<script>
+    // only load tagcloud.js in tag.html
+    if($('#tag_cloud').length !== 0){
+        async("http://yoursite-url/js/jquery.tagcloud.js",function(){
+            $.fn.tagcloud.defaults = {
+                //size: {start: 1, end: 1, unit: 'em'},
+                color: {start: '#bbbbee', end: '#0085a1'},
+            };
+            $('#tag_cloud a').tagcloud();
+        })
+    }
+</script>
+
+<!--fastClick.js -->
+<script>
+    async("https://cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+        var $nav = document.querySelector("nav");
+        if($nav) FastClick.attach($nav);
+    })
+</script>
+
+
+<!-- Google Analytics -->
+
+
+<script>
+    // dynamic User by Hux
+    var _gaId = 'UA-XXXXXXXX-X';
+    var _gaDomain = 'yoursite';
+
+    // Originial
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+    ga('create', _gaId, _gaDomain);
+    ga('send', 'pageview');
+</script>
+
+
+
+
+<!-- Baidu Tongji -->
+
+
+
+
+
+
+	<a id="rocket" href="#top" class=""></a>
+	<script type="text/javascript" src="/js/totop.js?v=1.0.0" async=""></script>
+    <script type="text/javascript" src="/js/toc.js?v=1.0.0" async=""></script>
+<!-- Image to hack wechat -->
+<img src="http://yoursite-url/img/icon_wechat.png" width="0" height="0" />
+<!-- Migrate from head to bottom, no longer block render and still work -->
+
+</body>
+
+</html>

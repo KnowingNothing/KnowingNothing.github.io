@@ -65,15 +65,15 @@
     </url>
 
     <url>
-        <loc>http://yoursite-url/tags/TVM-NNVM-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E7%BC%96%E8%AF%91%E5%99%A8/</loc>
-        <lastmod>2019-11-05T04:53:20.076Z</lastmod>
+        <loc>http://yoursite-url/tags/Tensorflow-XLA-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E7%BC%96%E8%AF%91%E5%99%A8%EF%BC%8C%E7%9F%A9%E9%98%B5%E4%B9%98%E6%B3%95/</loc>
+        <lastmod>2019-11-05T04:55:41.715Z</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.2</priority>
     </url>
 
     <url>
-        <loc>http://yoursite-url/tags/Tensorflow-XLA-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E7%BC%96%E8%AF%91%E5%99%A8%EF%BC%8C%E7%9F%A9%E9%98%B5%E4%B9%98%E6%B3%95/</loc>
-        <lastmod>2019-11-05T04:55:41.715Z</lastmod>
+        <loc>http://yoursite-url/tags/TVM-NNVM-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E7%BC%96%E8%AF%91%E5%99%A8/</loc>
+        <lastmod>2019-11-05T04:59:26.675Z</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.2</priority>
     </url>

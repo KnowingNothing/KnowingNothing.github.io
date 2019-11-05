@@ -217,7 +217,7 @@
                 <h1><span id="nnvm-探究">NNVM 探究</span></h1>
 <h2><span id="1-前言">1. 前言：</span></h2>
 <p>2017年亚马逊推出了<a href="https://tvm.ai/2017/10/06/nnvm-compiler-announcement" target="_blank" rel="noopener">NNVM编译器</a>。该编译器为深度学习而设计，主打网络层面编译，能够将前端框架的网络编译优化并使用TVM完成代码生成，从而能直接在后端硬件上运行。它支持的前端有MXNet, Caffe, Keras, PyTorch, Caffe2, CNTK等。</p>
-<p><img src="NNVM-graph-compiler/nnvm-overview.png" alt="nnvm框架"><br>
+<p><img src="nnvm-overview.png" alt="nnvm框架"><br>
 图1: NNVM框架图，图源<a href="https://tvm.ai/2017/10/06/nnvm-compiler-announcement" target="_blank" rel="noopener">在此</a></p>
 <h2><span id="2-使用">2. 使用：</span></h2>
 <p>虽然NNVM能够直接从深度学习框架编译计算图，我们也可以直接使用NNVM原生符号定义计算图，比如定一个卷积加ReLU的模块：</p>

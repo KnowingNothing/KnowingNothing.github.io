@@ -213,6 +213,40 @@
 
 <div class="post-preview">
 
+    <a href="/2019/11/05/NNVM-graph-compiler/">
+        <h2 class="post-title">
+            NNVM-graph-compiler
+        </h2>
+        <h3 class="post-subtitle">
+            
+        </h3>
+        <div class="post-content-preview">
+            NNVM 探究
+1. 前言：
+2017年亚马逊推出了NNVM编译器。该编译器为深度学习而设计，主打网络层面编译，能够将前端框架的网络编译优化并使用TVM完成代码生成，从而能直接在后端硬件上运行。它支持的前端有MXNet, Caffe, Keras, PyTorch, Caffe2, CNTK等。
+
+图1: NNVM框架图，图源在此
+2. 使用：
+虽然NNVM能够直接从深度学习框架编译计算图，......
+        </div>
+    </a>
+    
+        <p class="post-meta" style="margin: 10px 0;">
+            Posted by Sz Zheng on
+            2019-11-05
+        </p>
+        <div class="tags">
+            
+              <a href="/tags/#TVM, NNVM, 深度学习编译器" title="TVM, NNVM, 深度学习编译器">TVM, NNVM, 深度学习编译器</a>
+            
+        </div>
+    
+
+</div>
+<hr>
+
+<div class="post-preview">
+
     <a href="/2019/10/28/XLA探究-矩阵乘法/">
         <h2 class="post-title">
             XLA探究: 矩阵乘法
@@ -523,46 +557,6 @@ https://github.com/andrewadare/jetson-tx2-pytorch
 </div>
 <hr>
 
-<div class="post-preview">
-
-    <a href="/2019/04/01/编译复习-自底向上语法分析/">
-        <h2 class="post-title">
-            编译复习:自底向上语法分析
-        </h2>
-        <h3 class="post-subtitle">
-            
-        </h3>
-        <div class="post-content-preview">
-            编译复习:自底向上语法分析
-
-本学期做编译助教，需要复习一下。LR文法分析之前的内容都跳过了，对于自底向上的语法分析内容需要详细复习一下，在此记录
-
-
-资料：龙书第2版4.5节， 4.6节
-
-一、初步知识
-
-自底向上语法分析本质上是为输入串构造语法分析树的过程
-LR文法类是最大的、可以构造相应的移入-归约语法分析器的文法类
-当今构造LR语法分析器可以借助自动生成工具
-LR(k)文法中的L是自......
-        </div>
-    </a>
-    
-        <p class="post-meta" style="margin: 10px 0;">
-            Posted by Sz Zheng on
-            2019-04-01
-        </p>
-        <div class="tags">
-            
-              <a href="/tags/#编译原理" title="编译原理">编译原理</a>
-            
-        </div>
-    
-
-</div>
-<hr>
-
 
 
 <!-- Pager -->
@@ -597,6 +591,8 @@ LR(k)文法中的L是自......
     <!-- no hr -->
     <h5><a href="/tags/">FEATURED TAGS</a></h5>
     <div class="tags">
+        
+            
         
             
             <a href="/tags/#Python" title="Python" rel="2">Python</a>
@@ -705,6 +701,10 @@ LR(k)文法中的L是自......
     <ul>
       
         <li>
+          <a href="/2019/11/05/NNVM-graph-compiler/">NNVM-graph-compiler</a>
+        </li>
+      
+        <li>
           <a href="/2019/10/28/XLA探究-矩阵乘法/">XLA探究: 矩阵乘法</a>
         </li>
       
@@ -718,10 +718,6 @@ LR(k)文法中的L是自......
       
         <li>
           <a href="/2019/06/26/Read-Write-Data-in-xls-Format/">Read &amp; Write Data in .xls Format</a>
-        </li>
-      
-        <li>
-          <a href="/2019/06/26/Python多进程/">Python 多进程卡住</a>
         </li>
       
     </ul>

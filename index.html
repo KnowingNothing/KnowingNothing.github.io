@@ -222,12 +222,14 @@
         </h3>
         <div class="post-content-preview">
             NNVM 探究
+
 1. 前言：
 2017年亚马逊推出了NNVM编译器。该编译器为深度学习而设计，主打网络层面编译，能够将前端框架的网络编译优化并使用TVM完成代码生成，从而能直接在后端硬件上运行。它支持的前端有MXNet, Caffe, Keras, PyTorch, Caffe2, CNTK等。
 
 图1: NNVM框架图，图源在此
+
 2. 使用：
-虽然NNVM能够直接从深度学习框架编译计算图，......
+虽然NNVM能够直接从深度学习框架编译计算......
         </div>
     </a>
     
@@ -350,20 +352,19 @@ $$C(i, j) = \sum_{k=0}^{K-1}A(i, k) * B(k, j), 0 \le i &lt; M, 0 \le j &lt; N$$
 
 <div class="post-preview">
 
-    <a href="/2019/06/26/Python多进程/">
+    <a href="/2019/06/26/Read-Write-Data-in-xls-Format/">
         <h2 class="post-title">
-            Python 多进程卡住
+            Read & Write Data in .xls Format
         </h2>
         <h3 class="post-subtitle">
             
         </h3>
         <div class="post-content-preview">
-            Python多进程编程遇到的一个问题
-1. Queue的通信出现死锁问题：
-1.1 知识：
-多进程通信使用Pipe和Queue，区别在于Pipe只是两个进程间通信，而Queue则是允许多个进程。
-种类有Queue, multiprocessing.queues.SimpleQueue, JoinableQueue
-它们的模型都是基于Queue.Queue的，这是Python自带的Queue，......
+            利用Python读写xls格式表格
+参考这个链接和这个链接。
+实际使用发现xlwt似乎下载不了，找到这个链接使用pyExcelerator创建excel工作簿。
+后来看到这篇博客才知道要区分xls版本…
+...
         </div>
     </a>
     
@@ -383,19 +384,20 @@ $$C(i, j) = \sum_{k=0}^{K-1}A(i, k) * B(k, j), 0 \le i &lt; M, 0 \le j &lt; N$$
 
 <div class="post-preview">
 
-    <a href="/2019/06/26/Read-Write-Data-in-xls-Format/">
+    <a href="/2019/06/26/Python多进程/">
         <h2 class="post-title">
-            Read & Write Data in .xls Format
+            Python 多进程卡住
         </h2>
         <h3 class="post-subtitle">
             
         </h3>
         <div class="post-content-preview">
-            利用Python读写xls格式表格
-参考这个链接和这个链接。
-实际使用发现xlwt似乎下载不了，找到这个链接使用pyExcelerator创建excel工作簿。
-后来看到这篇博客才知道要区分xls版本…
-...
+            Python多进程编程遇到的一个问题
+1. Queue的通信出现死锁问题：
+1.1 知识：
+多进程通信使用Pipe和Queue，区别在于Pipe只是两个进程间通信，而Queue则是允许多个进程。
+种类有Queue, multiprocessing.queues.SimpleQueue, JoinableQueue
+它们的模型都是基于Queue.Queue的，这是Python自带的Queue，......
         </div>
     </a>
     
@@ -599,17 +601,17 @@ https://github.com/andrewadare/jetson-tx2-pytorch
             
         
             
+            <a href="/tags/#CUDA" title="CUDA" rel="2">CUDA</a>
+            
         
             
-            <a href="/tags/#CUDA" title="CUDA" rel="2">CUDA</a>
+            <a href="/tags/#便利生活" title="便利生活" rel="2">便利生活</a>
             
         
             
             <a href="/tags/#TVM" title="TVM" rel="2">TVM</a>
             
         
-            
-            <a href="/tags/#便利生活" title="便利生活" rel="2">便利生活</a>
             
         
             
@@ -717,7 +719,7 @@ https://github.com/andrewadare/jetson-tx2-pytorch
         </li>
       
         <li>
-          <a href="/2019/06/26/Python多进程/">Python 多进程卡住</a>
+          <a href="/2019/06/26/Read-Write-Data-in-xls-Format/">Read &amp; Write Data in .xls Format</a>
         </li>
       
     </ul>

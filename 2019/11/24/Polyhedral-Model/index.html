@@ -14,11 +14,11 @@
     <script async defer src="https://buttons.github.io/buttons.js"></script>
     <title>
         
-          Python 多进程卡住 - Sz Zheng | PKU
+          Polyhedral Model - Sz Zheng | PKU
         
     </title>
 
-    <link rel="canonical" href="http://yoursite-url/2019/06/26/Python多进程/">
+    <link rel="canonical" href="http://yoursite-url/2019/11/24/Polyhedral-Model/">
 
     <!-- Bootstrap Core CSS -->
     <link rel="stylesheet" href="/css/bootstrap.min.css">
@@ -69,7 +69,7 @@
 <style type="text/css">
     header.intro-header{
         
-            background-image: url('null')
+            background-image: url('img.jpg')
             /*post*/
         
     }
@@ -90,14 +90,14 @@
                     <div class="post-heading">
                         <div class="tags">
                             
-                              <a class="tag" href="/tags/#Python" title="Python">Python</a>
+                              <a class="tag" href="/tags/#Polyhedral, 编译优化" title="Polyhedral, 编译优化">Polyhedral, 编译优化</a>
                             
                         </div>
-                        <h1>Python 多进程卡住</h1>
+                        <h1>Polyhedral Model</h1>
                         <h2 class="subheading"></h2>
                         <span class="meta">
                             Posted by Sz Zheng on
-                            2019-06-26
+                            2019-11-24
                         </span>
                     </div>
                 
@@ -214,47 +214,61 @@
                 col-md-10 col-md-offset-1
                 post-container">
 
-                <h1><span id="python多进程编程遇到的一个问题">Python多进程编程遇到的一个问题</span></h1>
-<h2><span id="1-queue的通信出现死锁问题">1. Queue的通信出现死锁问题：</span></h2>
-<h3><span id="11-知识">1.1 知识：</span></h3>
-<p>多进程通信使用Pipe和Queue，区别在于Pipe只是两个进程间通信，而Queue则是允许多个进程。<br>
-种类有Queue, multiprocessing.queues.SimpleQueue, JoinableQueue<br>
-它们的模型都是基于Queue.Queue的，这是Python自带的Queue，但是这个Queue没有task_done, join方法。<br>
-如果用JoinableQueue，必须在每个task移除时调用JoinableQueue.task_done方法。<br>
-用Managers也可以创建共享Queue。</p>
-<ul>
-<li>Queue.Empty</li>
-<li>Queue.Full</li>
-</ul>
-<p>它们都是定义在Python自带的Queue下的，不在multiprocessing中</p>
-<p>Queue.join_thread()会保证buffer中的data被送到pipe中<br>
-Queue.cancel_join_thread()则不会保证data不丢失</p>
-<h3><span id="12-问题">1.2 问题：</span></h3>
-<p>queue总是hang，代码是按照autotvm的写法写的，这段是核心:</p>
-<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">kill_child_processes</span><span class="params">(parent_pid, sig=signal.SIGTERM)</span>:</span></span><br><span class="line">    <span class="string">"""kill all child processes recursively"""</span></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        parent = psutil.Process(parent_pid)</span><br><span class="line">    <span class="keyword">except</span> psutil.NoSuchProcess:</span><br><span class="line">        <span class="keyword">return</span></span><br><span class="line">    children = parent.children(recursive=<span class="keyword">True</span>)</span><br><span class="line">    <span class="keyword">for</span> process <span class="keyword">in</span> children:</span><br><span class="line">        <span class="keyword">try</span>:</span><br><span class="line">            process.send_signal(sig)</span><br><span class="line">        <span class="keyword">except</span> psutil.NoSuchProcess:</span><br><span class="line">            <span class="keyword">return</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">_execute_func</span><span class="params">(func, queue, args, kwargs)</span>:</span></span><br><span class="line">    <span class="string">"""execute function and return the result or exception to a queue"""</span></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        res = func(*args, **kwargs)</span><br><span class="line">    <span class="keyword">except</span> Exception <span class="keyword">as</span> exc:  <span class="comment"># pylint: disable=broad-except</span></span><br><span class="line">        res = exc</span><br><span class="line">    queue.put(res)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">call_with_timeout</span><span class="params">(queue, timeout, func, args, kwargs)</span>:</span></span><br><span class="line">    <span class="string">"""A wrapper to support timeout of a function call"""</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># start a new process for timeout (cannot use thread because we have c function)</span></span><br><span class="line">    p = Process(target=_execute_func, args=(func, queue, args, kwargs))</span><br><span class="line">    p.start()</span><br><span class="line">    p.join(timeout=timeout)</span><br><span class="line"></span><br><span class="line">    queue.put(executor.TimeoutError())</span><br><span class="line"></span><br><span class="line">    kill_child_processes(p.pid)</span><br><span class="line">    p.terminate()</span><br><span class="line">    p.join()</span><br></pre></td></tr></table></figure>
-<p>对于需要跑的任务func，这样使用:</p>
-<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">queue = Queue(<span class="number">2</span>)</span><br><span class="line">process = Process(target=call_with_timeout,</span><br><span class="line">                  args=(queue, self.timeout, func, args, kwargs))</span><br><span class="line">process.start()</span><br></pre></td></tr></table></figure>
-<p>得到结果的方法是:</p>
-<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">get</span><span class="params">(self, timeout=None)</span>:</span></span><br><span class="line">      <span class="keyword">try</span>:</span><br><span class="line">          res = self._queue.get(block=<span class="keyword">True</span>, timeout=timeout)</span><br><span class="line">      <span class="keyword">except</span> Empty:</span><br><span class="line">          <span class="keyword">raise</span> executor.TimeoutError()</span><br><span class="line">      <span class="keyword">if</span> self._process.is_alive():</span><br><span class="line">          kill_child_processes(self._process.pid)</span><br><span class="line">          self._process.terminate()</span><br><span class="line">      self._process.join()</span><br><span class="line">      self._queue.close()</span><br><span class="line">      self._queue.join_thread()</span><br><span class="line">      self._done = <span class="keyword">True</span></span><br><span class="line">      <span class="keyword">del</span> self._queue</span><br><span class="line">      <span class="keyword">del</span> self._process</span><br><span class="line">      <span class="keyword">return</span> res</span><br></pre></td></tr></table></figure>
-<p>这些都是autotvm中的代码，其思路是用嵌套的进程launch任务，然后用join的timeout控制时间。<br>
-实际用autotvm也没有问题，但是当我照抄这段代码自己用的时候经常会遇到hanging问题，代码卡住不动。</p>
-<h3><span id="13-问题解决">1.3 问题解决</span></h3>
-<p>因为autotvm用起来从来没有卡住的问题，一直不理解为什么会卡住。通过查multiprocessing的文档发现，<br>
-queue的使用最好不要被多个进程共享，而且要等到queue中的数据取出来后再kill子进程，否则容易卡住。上面的代码里<code>call_with_timeout</code>里就出现了同一个queue被父子两个进程使用的问题，把这段代码改掉后就不再出现卡住问题了。不过令人疑惑的是autotvm为什么这么用就没问题，而且跑起来非常快…</p>
-<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">call_with_timeout</span><span class="params">(func, queue, timeout, args, kwargs)</span>:</span></span><br><span class="line">    q = multi.Queue() <span class="comment"># 这个queue不和父进程共享</span></span><br><span class="line">    p = multi.Process(target=exec_func, args=(func, q, args, kwargs))</span><br><span class="line">    p.start()</span><br><span class="line">    <span class="comment"># 先取完数据再kill子进程</span></span><br><span class="line">    <span class="keyword">try</span>:</span><br><span class="line">        res = q.get(block=<span class="keyword">True</span>, timeout=timeout)</span><br><span class="line">    <span class="keyword">except</span> Empty:</span><br><span class="line">        res = multi.TimeoutError()</span><br><span class="line">    <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">        print(<span class="string">"Exception in process &#123;&#125;: &#123;&#125;"</span>.format(os.getpid(), str(e)))</span><br><span class="line">        res = e</span><br><span class="line">    kill_child_processes(p.pid)</span><br><span class="line">    p.terminate()</span><br><span class="line">    p.join()</span><br><span class="line">    queue.put(res) <span class="comment"># 注意这个queue不和子进程共享</span></span><br></pre></td></tr></table></figure>
+                <h1><span id="polyhderal-model">Polyhderal Model</span></h1>
+<blockquote>
+<p>本文的内容主要来自于对<a href="https://polyhedral.info/2016/01/26/tutorial.html" target="_blank" rel="noopener">Presburger Formulas and Polyhedral Compilation</a>文档的翻译和学习</p>
+</blockquote>
+<h2><span id="1-主要概念">1. 主要概念</span></h2>
+<p>对于代码的优化分析，有很多种方法，Polyhedral Model就是其中之一。Polyhedral Model的变种有很多，但他们核心的概念都是相似的，纵使他们各自的术语千差万别。<br>
+在所有的概念中，有三点最为重要：</p>
+<ol>
+<li>Instance Set: 一段代码中语句的执行实例集和。</li>
+<li>Dependence Relation: 是Instance Set中元素的二元关系集和，表示了一个语句实例对另一个语句实例的依赖，依赖有不同的类型（如读、写依赖）。</li>
+<li>Schedule: 一个Schedule是一个偏序的定义，建立在Instance Set上，表示了执行中语句实例的顺序。</li>
+</ol>
+<p>Polyhedral Model可以被用来分析程序，也可以用来改变程序，改变程序时就是对Schedule进行更改。但是更改不是随意的，需要满足一定的规则：</p>
+<p><strong>定义1.1</strong> （可行Schedule）记$D$为一个Dependence Relation，其元素$a\rightarrow b$表示语句实例$a$必须先于语句实例$b$执行。有一个Schedule $S$定义了一个偏序$&lt;<em>{S}$，那么$S$是一个在$D$上可行的Schedule当且仅当$D \subset (&lt;</em>{S})$。</p>
+<hr>
+<h2><span id="2-instance-set">2. Instance Set</span></h2>
+<p><strong>定义2.1</strong> （Instance Set）一个Instance Set是所有语句运行实例的集和。</p>
+<p>这里的语句运行实例，其粒度与实际分析时的源程序有关，比如分析C代码，则语句运行实例对应了一个C语句，如果输入是编译中间表示形式，那语句实例可以对应一个基本块。</p>
+<p><strong>例2.1</strong> 对于二维卷积例子：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; M; ++i)</span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="number">0</span>; j &lt; N; ++j)</span><br><span class="line">&#123;</span><br><span class="line">T1:    B[i][j] = <span class="number">0.0</span>;</span><br><span class="line">       <span class="keyword">for</span> (<span class="keyword">int</span> p = <span class="number">0</span>; p &lt; <span class="number">3</span>; ++p)</span><br><span class="line">       <span class="keyword">for</span> (<span class="keyword">int</span> q = <span class="number">0</span>; q &lt; <span class="number">3</span>; ++q)</span><br><span class="line">       &#123;</span><br><span class="line">T2:        B[i][j] += Img[i + p][j + q] * Filt[p][q];</span><br><span class="line">       &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其Instance Set可以写成<code>{T1[i][j] : 0 &lt;= i &lt; M and 0 &lt;= j &lt; N; T2[i][j][p][q] : 0 &lt;= i &lt; M and 0 &lt;= j &lt; N and 0 &lt;= p &lt; 3 and 0 &lt;= q &lt; 3}</code>。</p>
+<hr>
+<h2><span id="3-dependence-relation">3. Dependence Relation</span></h2>
+<p>在考虑Dependence Relation时，首先介绍访存关系。<br>
+<strong>定义3.1</strong> （读关系）读关系是Instance Set和数据元素集合间的二元关系，反映了语句实例读取数据。<br>
+<strong>定义3.2</strong> （写关系）写关系是Instance Set和数据元素集和间的二元关系，反映了语句实例写入数据。</p>
+<p>需要指出的是读写关系并不总是能很有把握地给出，因为访存不一定是按照线性规则地，如<code>A[i * i]</code>这种访存就不能通过Polyhedral Model准确地给出访存位置。在这种情况下往往会采用保守估计。</p>
+<p>Dependence Relation产生的原因很大程度上都是因为不同的语句实例会访问同一个数据元素，在某些情况下，这种访问顺序不能更改（如先读后写），因此产生了依赖关系。<br>
+<strong>定义3.3</strong> （Dependence Relation）定义四种Dependence Relation: 1. 读后写， 2. 写后读， 3. 写后写， 4. 数据流依赖。其中数据流依赖是写后读依赖的子集，要求在写入的值被读走之前不能有其它对其的写入被执行。</p>
+<p><strong>例3.1</strong> 对于二维卷积的例子，其Dependence Relation如下：<br>
+读后写：${T2[i][j][p][q] \rightarrow T2[i][j][p^\prime][q^\prime] : p &lt; p^\prime \land q &lt; q^\prime }$<br>
+写后读：${ T1[i][j] \rightarrow T2[i][j][p][q]; T2[i][j][p][q] \rightarrow T2[i][j][p^\prime][q^\prime] : p &lt; p^\prime \land q &lt; q^\prime }$<br>
+写后写：${ T1[i][j] \rightarrow T2[i][j][p][q]; T2[i][j][p][q] \rightarrow T2[i][j][p^\prime][q^\prime] : p &lt; p^\prime \land q &lt; q^\prime }$<br>
+数据流：${ T1[i][j] \rightarrow T2[i][j][p][q]; T2[i][j][p][q] \rightarrow T2[i][j][p^\prime][q^\prime] : p &lt; p^\prime \land q &lt; q^\prime }$<br>
+所有的依赖都要满足，那么最终的Dependence Relation就是${ T1[i][j] \rightarrow T2[i][j][p][q]; T2[i][j][p][q] \rightarrow T2[i][j][p^\prime][q^\prime] : p &lt; p^\prime \land q &lt; q^\prime }$</p>
+<hr>
+<h2><span id="4-schedule">4. Schedule</span></h2>
+<p><strong>定义4.1</strong> （Schedule）一个Schedule就是Instance Set上一个严格偏序$&lt;_{S}$。</p>
+<p>一个Schedule的表示方式也有很多种，比如表示成树。<br>
+<strong>例4.1</strong> 二维卷积的一种可行偏序是<br>
+${ T1[i][j] \rightarrow T2[i][j][p][q]; T2[i][j][p][q] \rightarrow T2[i][j][p^\prime][q^\prime] :p &lt; p^\prime \land q &lt; q^\prime }$，其对应的Schedule可以写为${ T1[i][j] \rightarrow [i, j]; T2[i][j][p][q] \rightarrow [i, j, p, q] }$这是一个可行Schedule，因为它包含了所有的Dependence Relation。</p>
+<hr>
+<h2><span id="5-总结">5. 总结</span></h2>
+<p>介绍到这里只是将Polyhedral Model中的三个基本概念讲述一下，或者说是介绍了如何用Polyhedral Model描述程序。这里遗留下的一个重要内容是如何算出满足需求的Schedule，这部分常常用线性规划结合Cost Model来完成，留作后续介绍吧。<br>
+另外近年来出现了几个工作用Polyhedral Model来做深度学习编译器，但从上面的简单介绍可以看到naive的Polyhedral Model有一些问题，比如在Dependence Relation里会将累加顺序限制住，这是因为Polyhedral Model并不知道加法有结合律和交换律。而深度学习中几乎所有的加和乘都可以假设有结合律与交换律，这也算是一种Domain Knowledge。因此必须要对Polyhedral Model进行恰当的修改才能很好地放入深度学习场景下。</p>
+
                 
 
                 <hr>
                 <!-- Pager -->
                 <ul class="pager">
                     
-                        <li class="previous">
-                            <a href="/2019/07/24/在-Ubuntu-18-04-上安装-CUDA-10-1/" data-toggle="tooltip" data-placement="top" title="在 Ubuntu 18.04 上安装 CUDA 10.1">&larr; Previous Post</a>
-                        </li>
-                    
                     
                         <li class="next">
-                            <a href="/2019/06/26/Read-Write-Data-in-xls-Format/" data-toggle="tooltip" data-placement="top" title="Read & Write Data in .xls Format">Next Post &rarr;</a>
+                            <a href="/2019/11/10/TVM-Relay-graph-compiler/" data-toggle="tooltip" data-placement="top" title="TVM/Relay graph compiler">Next Post &rarr;</a>
                         </li>
                     
                 </ul>
@@ -284,7 +298,7 @@ queue的使用最好不要被多个进程共享，而且要等到queue中的数�
         <div id="toc" class="toc-article">
         <strong class="toc-title">Contents</strong>
         
-          <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.</span> <span class="toc-nav-text">Python多进程编程遇到的一个问题</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.1.</span> <span class="toc-nav-text">1. Queue的通信出现死锁问题：</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.1.1.</span> <span class="toc-nav-text">1.1 知识：</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.1.2.</span> <span class="toc-nav-text">1.2 问题：</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.1.3.</span> <span class="toc-nav-text">1.3 问题解决</span></a></li></ol></li></ol></li></ol>
+          <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.</span> <span class="toc-nav-text">Polyhderal Model</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.1.</span> <span class="toc-nav-text">1. 主要概念</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.2.</span> <span class="toc-nav-text">2. Instance Set</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.3.</span> <span class="toc-nav-text">3. Dependence Relation</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.4.</span> <span class="toc-nav-text">4. Schedule</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.5.</span> <span class="toc-nav-text">5. 总结</span></a></li></ol></li></ol>
         
         </div>
       </aside>
@@ -304,7 +318,7 @@ queue的使用最好不要被多个进程共享，而且要等到queue中的数�
                     <h5><a href="/tags/">FEATURED TAGS</a></h5>
                     <div class="tags">
                        
-                          <a class="tag" href="/tags/#Python" title="Python">Python</a>
+                          <a class="tag" href="/tags/#Polyhedral, 编译优化" title="Polyhedral, 编译优化">Polyhedral, 编译优化</a>
                         
                     </div>
                 </section>
@@ -339,8 +353,8 @@ queue的使用最好不要被多个进程共享，而且要等到queue中的数�
 <script type="text/javascript">
     /* * * CONFIGURATION VARIABLES * * */
     var disqus_shortname = "your-disqus-ID";
-    var disqus_identifier = "http://yoursite-url/2019/06/26/Python多进程/";
-    var disqus_url = "http://yoursite-url/2019/06/26/Python多进程/";
+    var disqus_identifier = "http://yoursite-url/2019/11/24/Polyhedral-Model/";
+    var disqus_url = "http://yoursite-url/2019/11/24/Polyhedral-Model/";
 
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;

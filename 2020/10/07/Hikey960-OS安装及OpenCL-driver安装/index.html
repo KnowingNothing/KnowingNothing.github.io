@@ -14,11 +14,11 @@
     <script async defer src="https://buttons.github.io/buttons.js"></script>
     <title>
         
-          Install Cuda-9.0 on Ubuntu 16.04 - Sz Zheng | PKU
+          Hikey960 OS安装及OpenCL driver安装 - Sz Zheng | PKU
         
     </title>
 
-    <link rel="canonical" href="http://yoursite-url/2018/12/01/从安装Ubuntu 16.04到降低内核版本安装Cuda-9.0的方法/">
+    <link rel="canonical" href="http://yoursite-url/2020/10/07/Hikey960-OS安装及OpenCL-driver安装/">
 
     <!-- Bootstrap Core CSS -->
     <link rel="stylesheet" href="/css/bootstrap.min.css">
@@ -90,14 +90,14 @@
                     <div class="post-heading">
                         <div class="tags">
                             
-                              <a class="tag" href="/tags/#CUDA" title="CUDA">CUDA</a>
+                              <a class="tag" href="/tags/#便利生活, ARM, OpenCL, Mali" title="便利生活, ARM, OpenCL, Mali">便利生活, ARM, OpenCL, Mali</a>
                             
                         </div>
-                        <h1>Install Cuda-9.0 on Ubuntu 16.04</h1>
+                        <h1>Hikey960 OS安装及OpenCL driver安装</h1>
                         <h2 class="subheading"></h2>
                         <span class="meta">
                             Posted by Sz Zheng on
-                            2018-12-01
+                            2020-10-07
                         </span>
                     </div>
                 
@@ -214,87 +214,78 @@
                 col-md-10 col-md-offset-1
                 post-container">
 
-                <h1><span id="从安装ubuntu-1604到降低内核版本安装cuda-90的方法">从安装Ubuntu 16.04到降低内核版本安装Cuda-9.0的方法</span></h1>
+                <h1><span id="hikey960-os安装及opencl-driver安装">Hikey960 OS安装及OpenCL driver安装</span></h1>
+<p>Hikey960是一个非常老的板子了，实验室正好有一块，一直都没人用（因为配置起来比较麻烦，不如用TX1这种方便的板子），最近对Mali GPU感兴趣，就趁着假期看看能不能用起来。<br>
+要想用这块板子，首先得刷OS（Hikey960自带AOSP，不过安卓的OS没支持OpenCL driver，所以最好刷一个新的OS，比如Debian的，然后再装driver）。<br>
+好在由于板子够老，有足够的文档、论坛、博客讨论，只是内容比较混杂，而且中文内容更加零散，于是在这里记录一下如何刷OS和装driver（本文的本质还是搬运整理已有信息）。</p>
+<p><strong>参考信息源：</strong></p>
 <ul>
-<li>作者：zsz</li>
-<li>时间：2018-12-01-20:18<br>
-公元2018年12月1日，上午10时左右，开完分享组会的我开始调戏一台叫做kawaii的电脑，想给她安装个cuda 9.0，不想历经种种曲折，甚至将kawaii的内核损坏，几欲放弃，最终在王者峡谷沉思两个多小时后，我还是选择直面遍体鳞伤的kawaii，在牺牲了另外72000秒后，终于顺利地达到了目标，此事件影响重大，特在此记录，并开设本人第一篇博客，用于记录类似奇闻轶事。</li>
+<li><a href="https://www.96boards.org/documentation/consumer/hikey/hikey960/installation/linux-fastboot.md.html" target="_blank" rel="noopener">96Boards的文档</a></li>
+<li><a href="https://wiki.debian.org/InstallingDebianOn/96Boards/HiKey960" target="_blank" rel="noopener">Debian的wiki</a></li>
+<li><a href="https://www.96boards.org/documentation/consumer/hikey/hikey960/guides/openCL-support.md.html" target="_blank" rel="noopener">96Boards的OpenCL driver安装文档</a></li>
 </ul>
-<h2><span id="1-安装ubuntu-1604">1. 安装Ubuntu 16.04</span></h2>
-<pre><code>这个不是重点，略写略写
-</code></pre>
+<h2><span id="1-准备">1. 准备</span></h2>
+<h3><span id="11-熟悉板子">1.1 熟悉板子</span></h3>
+<img src="hikey960/hikey-960-SD-front.jpg" height="300" width="600" alt="additional" align="center">
+这块板子有一个type C接口和两个type A接口，一个HDMI输出，一个SD插槽，还有比较关键的GPIO用于控制输出。目前Debian kernel无法使用HDMI进行显示输出，所以必须从GPIO连串口进行控制输出。type C接口是刷OS时使用的接口。
+<img src="hikey960/hikey-960-SD-back.jpg" height="300" width="600" alt="additional" align="center">
+板子的反面有三个开关，据说更老版本的是跳片。这些开关的组合代表了板子的不同状态：recovery/fastboot/normal
 <ul>
-<li>安装UltraISO</li>
-<li>下载Ubuntu 16.04的磁盘映像</li>
-<li>用UltraISO写磁盘映像到一个U盘里</li>
-<li>把U盘插在kawaii上，然后傻瓜式操作就好了</li>
-<li>分区就用默认的，毕竟就这么一个机器一个系统，没啥要特别注意的</li>
+<li>recovery: 1 ON; 2 ON; 3 OFF</li>
+<li>fastboot: 1 ON; 2 OFF; 3 ON</li>
+<li>normal: 1 ON; 2 OFF; 3 OFF</li>
 </ul>
-<h2><span id="2-降级操作系统内核版本">2. 降级操作系统内核版本</span></h2>
-<pre><code>Cuda-9.0只支持Linux 4.4版本的内核，我安装的Ubuntu内核是4.15的，需要降级
-</code></pre>
-<p>这一部分参考的<a href="http://www.xf5000.com/2016/12/20/ubuntu-16-04-%E5%86%85%E6%A0%B8%E9%99%8D%E7%BA%A7/" target="_blank" rel="noopener">这篇文章</a></p>
-<ul>
-<li>备份源配置文件<br>
-<code>sudo cp /etc/apt/sources.list /etc/apt/sources.list_bak</code></li>
-<li>用编辑器打开源配置文件<br>
-<code>sudo vim /etc/apt/sources.list</code></li>
-<li>在文件最后面增加一行并保存<br>
-<code>deb http://security.ubuntu.com/ubuntu trusty-security main</code></li>
-<li>执行以下命令更新配置<br>
-<code>sudo apt-get update</code></li>
-<li>安装新内核<br>
-<code>sudo apt-get install linux-image-extra-4.4.0-98-generic</code></li>
-<li>执行以下命令查看是否安装成功<br>
-<code>dpkg -l | grep linux-image</code></li>
-<li>用编辑器打开 grub 配置文件<br>
-<code>sudo vim /etc/default/grub</code></li>
-<li><code>GRUB_DEFAULT=0</code> 改为 <code>GRUB_DEFAULT=“1&gt;6”</code><br>
-这里用的的“1&gt;6”指的是启动顺序，数的方法是打开 /boot/grub/grub.cfg，然后找到 menuentry 后的一系列启动选项，从0开始数，要注意在高级选项里是有子选项的，我这里的高级选项是1号，子选项里第6号是4.4.0-98，所以写了“1&gt;6”<br>
-<img src="https://raw.githubusercontent.com/KnowingNothing/KnowingNothing.github.io/master/Snipaste_2018-12-01_22-07-31.png" alt="Alt text"></li>
-<li>保存退出，然后执行以下命令更新 Grub 引导<br>
-<code>sudo update-grub</code></li>
-<li>然后重启就可以进入新内核了<br>
-用<code>uname -r</code>查看当前内核版本</li>
-</ul>
-<h2><span id="3-安装-cuda-90">3. 安装 Cuda-9.0</span></h2>
-<ul>
-<li>下载 Cuda-9.0 runfile<br>
-<a href="https://developer.nvidia.com/cuda-90-download-archive" target="_blank" rel="noopener">官网下载</a></li>
-<li>给 kawaii 安装 ssh-server<br>
-<code>sudo apt-get install openssh-server</code></li>
-<li>启动 ssh 服务<br>
-<code>sudo service sshd start</code></li>
-<li>使用公钥登陆方式，将信任的公钥放在<code>/home/alice/.ssh/authorized_keys</code>中<br>
-<code>sudo vim /etc/ssh/sshd_config</code></li>
-<li>修改这个文件，禁止 root 远程登陆和普通用户密码登陆</li>
-<li>之后选择用另一台电脑 ssh 连接 kawaii</li>
-<li>关闭 nouveau<br>
-<code>echo &quot;blacklist nouveau&quot; &gt;&gt;/etc/modprobe.d/blacklist.conf</code><br>
-<code>echo &quot;options nouveau modeset=0&quot; &gt;&gt;/etc/modprobe.d/blacklist.conf</code><br>
-<code>rmmod nouveau</code></li>
-<li>检查一下是否关闭成功了，没有输出就成功了，必要时重启试试，有的方法说是用 <code>update-initramfs -u</code>，这个方法在内核降级后是不好使的<br>
-<code>lsmod | grep nouveau</code></li>
-<li>准备 gcc， 看看 <code>lspci | grep -i nvidia</code>到底能不能装 Cuda</li>
-<li>安装 kernel header<br>
-<code>sudo apt-get install linux-headers-$(uname -r)</code></li>
-<li>关闭图形界面<br>
-<code>sudo /etc/init.d/lightdm stop</code><br>
-<code>sudo init 3</code></li>
-<li>开始正式安装<br>
-<code>sudo sh cuda_9.0.176_384.81_linux.run</code></li>
-<li>然后按照提示来就行</li>
-</ul>
-<p>写到这里就完事了，作为第一篇博文，添加一个搭建博客的指导链接在<a href="https://juejin.im/entry/5a574864f265da3e3c6c1217" target="_blank" rel="noopener">这里</a></p>
-<p>Ubuntu自动更新会导致内核版本变更，上述方法就会指向错误的内核，因此可以禁止内核自动更新：<br>
-打开文件<br>
-<code>sudo vim /etc/apt/apt.conf.d/10periodic</code><br>
-第一行改成0<br>
-<code>APT::Periodic::Update-Package-Lists &quot;0&quot;</code><br>
-此外，用<br>
-<code>sudo apt-mark hold linux-image-4.4.0-98-generic</code><br>
-<code>sudo apt-mark hold linux-image-extra-4.4.0-98-generic</code><br>
-可以保留对应4.4.0-98内核，取消就用<code>unhold</code>就好</p>
+<h3><span id="12-其它设备">1.2 其它设备</span></h3>
+<p>需要准备一个运行Linux的pc机作为host，一个1.8v的USB转TTL芯片及杜邦线（或者买<a href="https://www.96boards.org/product/uartserial/" target="_blank" rel="noopener">96Boards的UART</a>，某宝售价一百到两百）用作控制输出，一个USB typeC的线（手机充电线就行）（如果买了96Boards的UART，要准备一根micro USB线，手机充电线即可）。</p>
+<h2><span id="2-刷debian-os">2. 刷Debian OS</span></h2>
+<p>大致流程与<a href="https://www.96boards.org/documentation/consumer/hikey/hikey960/installation/linux-fastboot.md.html" target="_blank" rel="noopener">这里</a>一样，只是有点细节区别。<br>
+<img src="hikey960/gpio.png" height="300" width="200" alt="additional" align="center"><br>
+首先切断板子电源，将开关调整至<strong>1:ON; 2:ON; 3:OFF</strong>的状态，此时板子在recovery状态，然后连接type C到pc机，再把控制输出接到pc机，这里我是向同学借了一个96Boards UART用作控制输出，直接连micro USB线就好；如果要用USB转TTL的话，就要自己把串口线接好，11,13号口分别是板子的输出和输入，用杜邦线把11号口连在转接器的输入，13号连在转接器的输出，USB端连接pc机。这些就绪后，接上电源线待机。此时两个USB接口连着pc机，pc机的/dev/下应该至少有两个ttyUSBx（比如ttyUSB0和ttyUSB1），通过插拔USB线，可以对应好哪个线是哪个ttyUSBx，为了方便说，就假设控制输出（就是UART的线）连着ttyUSB0，而type C线连着ttyUSB1。后续步骤涉及插拔电源线，USB线则可以一直连着，不用插拔。</p>
+<p>在pc机上使用screen监视控制输出，我本来用minicom，可是由于不太会用，导致只能看到输出而无法输入来自pc端的信息，所以最后使用了screen，命令为</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo screen /dev/ttyUSB0 115200</span><br></pre></td></tr></table></figure>
+<p>最开始要刷板子的firmware，这里的流程基本是按照<a href="https://github.com/96boards-hikey/tools-images-hikey960" target="_blank" rel="noopener">github 文档</a>。步骤是：</p>
+<ol>
+<li>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ sudo dpkg -s modemmanager</span><br><span class="line">$ sudo apt-get remove modemmanager</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ git <span class="built_in">clone</span> https://github.com/96boards-hikey/tools-images-hikey960</span><br><span class="line">$ <span class="built_in">cd</span> tools-images-hikey960</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ sudo ./recovery-flash.sh /dev/ttyUSB1</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>最后一步可能看到报错xloader没刷成功，这个没关系，不会影响后续步骤。</p>
+<p>这些做完了要拔掉板子电源，将背面开关调整至fastboot模式<strong>1 ON; 2 OFF; 3 ON</strong>，然后再接入电源。<br>
+然后刷bootloader，本来<a href="https://www.96boards.org/documentation/consumer/hikey/hikey960/downloads/Debian.md.html" target="_blank" rel="noopener">文档</a>都有链接，可是由于文档更新不及时，链接是失效的，真正的链接是<a href="http://snapshots.linaro.org/reference-platform/components/uefi-staging/108/hikey960/" target="_blank" rel="noopener">这里</a>，进去自己选release还是debug目录，下载对应目录内<strong>所有</strong>内容。下载后按以下步骤进行：</p>
+<ol>
+<li>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">chmod +x hikey_idt</span><br><span class="line">sudo ./hikey_idt -c config -p /dev/ttyUSB1</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">fastboot flash ptable prm_ptable.img</span><br><span class="line">fastboot flash xloader hisi-sec_xloader.img</span><br><span class="line">fastboot flash fastboot l-loader.bin</span><br><span class="line">fastboot flash fip fip.bi</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>这些做完后再次拔出板子电源，然后保持fastboot状态再接入电源，此时控制输出监视（screen）应该可以看到启动输出很多内容，最终停在了</p>
+<figure class="highlight vim"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Press ESCAPE <span class="keyword">for</span> boot <span class="keyword">options</span> .Android Fastboot <span class="keyword">mode</span> - <span class="keyword">version</span> <span class="number">0.7</span>.</span><br><span class="line">Press RETURN <span class="built_in">or</span> SPACE key <span class="keyword">to</span> <span class="keyword">quit</span>.</span><br></pre></td></tr></table></figure>
+<p>这里，这里不要按任何按键，就让它停在这里。</p>
+<p>第三步要刷OS的映像了，从<a href="http://snapshots.linaro.org/96boards/hikey/linaro/debian/48/" target="_blank" rel="noopener">这里</a>下载boot和rootfs开头的文件并解压。然后执行下面的命令：</p>
+<ol>
+<li>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fastboot devices</span><br></pre></td></tr></table></figure>
+<p>应该有输出，类似</p>
+<figure class="highlight dns"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">8211</span>F<span class="number">5D02876987</span> fastboot</span><br></pre></td></tr></table></figure>
+</li>
+<li>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">fastboot flash boot boot-linaro-stretch-developer-hikey-&lt;日期&gt;.img</span><br><span class="line">fastboot flash system rootfs-linaro-stretch-developer-hikey-&lt;日期&gt;.img</span><br><span class="line">fastboot reboot</span><br></pre></td></tr></table></figure>
+<p>这里的日期是不同的，看你下载的文件具体名字。<br>
+这个刷完后就可以拔出电源线，将背后的开关调整至normal状态<strong>1 ON; 2 OFF; 3 OFF</strong>，再次插入电源线，此时控制输出监视就可以看到完整的OS启动过程了。至此，OS的刷写完毕。有了OS就可以自己配置一下ssh，之后的操作都可以通过主机ssh连接板子完成了，两个USB设备都可以移除了，只需要连着电源线和网线即可。</p>
+</li>
+</ol>
+<h2><span id="3-安装opencl-driver">3. 安装OpenCL driver</span></h2>
+<p>OpenCL driver的安装是完全按照<a href="https://www.96boards.org/documentation/consumer/hikey/hikey960/guides/openCL-support.md.html" target="_blank" rel="noopener">文档</a>来的，注意虽然现在已经是2020年了，文档是2018年的内容，但是不要使用新的kernel driver代码包，它们会出问题（一些文件找不到），所以还是乖乖地使用2018年版本为好。</p>
+<h2><span id="4-后续">4. 后续</span></h2>
+<p>虽然OpenCL driver都装好了，但是有个问题是只有sudo才能使用，普通用户下clinfo都找不到设备的，这就带来了一些问题，比如我装个tvm的runtime，用rpc调用跑kernel，它会报错说对应设备没有，找不到mali OpenCL的内容，这个目前还没有解决…</p>
 
                 
 
@@ -302,10 +293,10 @@
                 <!-- Pager -->
                 <ul class="pager">
                     
-                        <li class="previous">
-                            <a href="/2019/01/03/cache/" data-toggle="tooltip" data-placement="top" title="Cache的工作方式复习">&larr; Previous Post</a>
-                        </li>
                     
+                        <li class="next">
+                            <a href="/2019/11/24/Polyhedral-Model/" data-toggle="tooltip" data-placement="top" title="Polyhedral Model">Next Post &rarr;</a>
+                        </li>
                     
                 </ul>
 
@@ -329,6 +320,17 @@
             <!-- Tabe of Content -->
             <!-- Table of Contents -->
 
+    
+      <aside id="sidebar">
+        <div id="toc" class="toc-article">
+        <strong class="toc-title">Contents</strong>
+        
+          <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-1"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.</span> <span class="toc-nav-text">Hikey960 OS安装及OpenCL driver安装</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.1.</span> <span class="toc-nav-text">1. 准备</span></a><ol class="toc-nav-child"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.1.1.</span> <span class="toc-nav-text">1.1 熟悉板子</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.1.2.</span> <span class="toc-nav-text">1.2 其它设备</span></a></li></ol></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.2.</span> <span class="toc-nav-text">2. 刷Debian OS</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.3.</span> <span class="toc-nav-text">3. 安装OpenCL driver</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.4.</span> <span class="toc-nav-text">4. 后续</span></a></li></ol></li></ol>
+        
+        </div>
+      </aside>
+    
+
                 
             <!-- Sidebar Container -->
             <div class="
@@ -343,7 +345,7 @@
                     <h5><a href="/tags/">FEATURED TAGS</a></h5>
                     <div class="tags">
                        
-                          <a class="tag" href="/tags/#CUDA" title="CUDA">CUDA</a>
+                          <a class="tag" href="/tags/#便利生活, ARM, OpenCL, Mali" title="便利生活, ARM, OpenCL, Mali">便利生活, ARM, OpenCL, Mali</a>
                         
                     </div>
                 </section>
@@ -378,8 +380,8 @@
 <script type="text/javascript">
     /* * * CONFIGURATION VARIABLES * * */
     var disqus_shortname = "your-disqus-ID";
-    var disqus_identifier = "http://yoursite-url/2018/12/01/从安装Ubuntu 16.04到降低内核版本安装Cuda-9.0的方法/";
-    var disqus_url = "http://yoursite-url/2018/12/01/从安装Ubuntu 16.04到降低内核版本安装Cuda-9.0的方法/";
+    var disqus_identifier = "http://yoursite-url/2020/10/07/Hikey960-OS安装及OpenCL-driver安装/";
+    var disqus_url = "http://yoursite-url/2020/10/07/Hikey960-OS安装及OpenCL-driver安装/";
 
     (function() {
         var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;

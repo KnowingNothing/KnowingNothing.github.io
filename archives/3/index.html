@@ -14,11 +14,11 @@
     <script async defer src="https://buttons.github.io/buttons.js"></script>
     <title>
         
-          Install Cuda-9.0 on Ubuntu 16.04 - Sz Zheng | PKU
+          Sz Zheng | PKU
         
     </title>
 
-    <link rel="canonical" href="http://yoursite-url/2018/12/01/从安装Ubuntu 16.04到降低内核版本安装Cuda-9.0的方法/">
+    <link rel="canonical" href="http://yoursite-url/archives/3/">
 
     <!-- Bootstrap Core CSS -->
     <link rel="stylesheet" href="/css/bootstrap.min.css">
@@ -69,8 +69,8 @@
 <style type="text/css">
     header.intro-header{
         
-            background-image: url('img.jpg')
-            /*post*/
+            background-image: url('/img/header_img/home-bg-saber.jpg') 
+            /*config*/
         
     }
     
@@ -87,18 +87,10 @@
             <div class="row">
                 <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
                 
-                    <div class="post-heading">
-                        <div class="tags">
-                            
-                              <a class="tag" href="/tags/#CUDA" title="CUDA">CUDA</a>
-                            
-                        </div>
-                        <h1>Install Cuda-9.0 on Ubuntu 16.04</h1>
-                        <h2 class="subheading"></h2>
-                        <span class="meta">
-                            Posted by Sz Zheng on
-                            2018-12-01
-                        </span>
+                    <div class="site-heading">
+                        <h1>Secretly beautiful</h1>
+                        <!--<hr class="small">-->
+                        <span class="subheading">My notes to share</span>
                     </div>
                 
 
@@ -201,231 +193,253 @@
 
 
     <!-- Main Content -->
-    <!-- Modify by Yu-Hsuan Yen -->
+    <!-- Main Content -->
+<div class="container">
+    <div class="row">
+        
 
-<!-- Post Content -->
-<article>
-    <div class="container">
-        <div class="row">
-
-            <!-- Post Container -->
+<!-- USE SIDEBAR -->
+    <!-- Post Container -->
             <div class="
-                col-lg-8 col-lg-offset-2
-                col-md-10 col-md-offset-1
-                post-container">
-
-                <h1><span id="从安装ubuntu-1604到降低内核版本安装cuda-90的方法">从安装Ubuntu 16.04到降低内核版本安装Cuda-9.0的方法</span></h1>
-<ul>
-<li>作者：zsz</li>
-<li>时间：2018-12-01-20:18<br>
-公元2018年12月1日，上午10时左右，开完分享组会的我开始调戏一台叫做kawaii的电脑，想给她安装个cuda 9.0，不想历经种种曲折，甚至将kawaii的内核损坏，几欲放弃，最终在王者峡谷沉思两个多小时后，我还是选择直面遍体鳞伤的kawaii，在牺牲了另外72000秒后，终于顺利地达到了目标，此事件影响重大，特在此记录，并开设本人第一篇博客，用于记录类似奇闻轶事。</li>
-</ul>
-<h2><span id="1-安装ubuntu-1604">1. 安装Ubuntu 16.04</span></h2>
-<pre><code>这个不是重点，略写略写
-</code></pre>
-<ul>
-<li>安装UltraISO</li>
-<li>下载Ubuntu 16.04的磁盘映像</li>
-<li>用UltraISO写磁盘映像到一个U盘里</li>
-<li>把U盘插在kawaii上，然后傻瓜式操作就好了</li>
-<li>分区就用默认的，毕竟就这么一个机器一个系统，没啥要特别注意的</li>
-</ul>
-<h2><span id="2-降级操作系统内核版本">2. 降级操作系统内核版本</span></h2>
-<pre><code>Cuda-9.0只支持Linux 4.4版本的内核，我安装的Ubuntu内核是4.15的，需要降级
-</code></pre>
-<p>这一部分参考的<a href="http://www.xf5000.com/2016/12/20/ubuntu-16-04-%E5%86%85%E6%A0%B8%E9%99%8D%E7%BA%A7/" target="_blank" rel="noopener">这篇文章</a></p>
-<ul>
-<li>备份源配置文件<br>
-<code>sudo cp /etc/apt/sources.list /etc/apt/sources.list_bak</code></li>
-<li>用编辑器打开源配置文件<br>
-<code>sudo vim /etc/apt/sources.list</code></li>
-<li>在文件最后面增加一行并保存<br>
-<code>deb http://security.ubuntu.com/ubuntu trusty-security main</code></li>
-<li>执行以下命令更新配置<br>
-<code>sudo apt-get update</code></li>
-<li>安装新内核<br>
-<code>sudo apt-get install linux-image-extra-4.4.0-98-generic</code></li>
-<li>执行以下命令查看是否安装成功<br>
-<code>dpkg -l | grep linux-image</code></li>
-<li>用编辑器打开 grub 配置文件<br>
-<code>sudo vim /etc/default/grub</code></li>
-<li><code>GRUB_DEFAULT=0</code> 改为 <code>GRUB_DEFAULT=“1&gt;6”</code><br>
-这里用的的“1&gt;6”指的是启动顺序，数的方法是打开 /boot/grub/grub.cfg，然后找到 menuentry 后的一系列启动选项，从0开始数，要注意在高级选项里是有子选项的，我这里的高级选项是1号，子选项里第6号是4.4.0-98，所以写了“1&gt;6”<br>
-<img src="https://raw.githubusercontent.com/KnowingNothing/KnowingNothing.github.io/master/Snipaste_2018-12-01_22-07-31.png" alt="Alt text"></li>
-<li>保存退出，然后执行以下命令更新 Grub 引导<br>
-<code>sudo update-grub</code></li>
-<li>然后重启就可以进入新内核了<br>
-用<code>uname -r</code>查看当前内核版本</li>
-</ul>
-<h2><span id="3-安装-cuda-90">3. 安装 Cuda-9.0</span></h2>
-<ul>
-<li>下载 Cuda-9.0 runfile<br>
-<a href="https://developer.nvidia.com/cuda-90-download-archive" target="_blank" rel="noopener">官网下载</a></li>
-<li>给 kawaii 安装 ssh-server<br>
-<code>sudo apt-get install openssh-server</code></li>
-<li>启动 ssh 服务<br>
-<code>sudo service sshd start</code></li>
-<li>使用公钥登陆方式，将信任的公钥放在<code>/home/alice/.ssh/authorized_keys</code>中<br>
-<code>sudo vim /etc/ssh/sshd_config</code></li>
-<li>修改这个文件，禁止 root 远程登陆和普通用户密码登陆</li>
-<li>之后选择用另一台电脑 ssh 连接 kawaii</li>
-<li>关闭 nouveau<br>
-<code>echo &quot;blacklist nouveau&quot; &gt;&gt;/etc/modprobe.d/blacklist.conf</code><br>
-<code>echo &quot;options nouveau modeset=0&quot; &gt;&gt;/etc/modprobe.d/blacklist.conf</code><br>
-<code>rmmod nouveau</code></li>
-<li>检查一下是否关闭成功了，没有输出就成功了，必要时重启试试，有的方法说是用 <code>update-initramfs -u</code>，这个方法在内核降级后是不好使的<br>
-<code>lsmod | grep nouveau</code></li>
-<li>准备 gcc， 看看 <code>lspci | grep -i nvidia</code>到底能不能装 Cuda</li>
-<li>安装 kernel header<br>
-<code>sudo apt-get install linux-headers-$(uname -r)</code></li>
-<li>关闭图形界面<br>
-<code>sudo /etc/init.d/lightdm stop</code><br>
-<code>sudo init 3</code></li>
-<li>开始正式安装<br>
-<code>sudo sh cuda_9.0.176_384.81_linux.run</code></li>
-<li>然后按照提示来就行</li>
-</ul>
-<p>写到这里就完事了，作为第一篇博文，添加一个搭建博客的指导链接在<a href="https://juejin.im/entry/5a574864f265da3e3c6c1217" target="_blank" rel="noopener">这里</a></p>
-<p>Ubuntu自动更新会导致内核版本变更，上述方法就会指向错误的内核，因此可以禁止内核自动更新：<br>
-打开文件<br>
-<code>sudo vim /etc/apt/apt.conf.d/10periodic</code><br>
-第一行改成0<br>
-<code>APT::Periodic::Update-Package-Lists &quot;0&quot;</code><br>
-此外，用<br>
-<code>sudo apt-mark hold linux-image-4.4.0-98-generic</code><br>
-<code>sudo apt-mark hold linux-image-extra-4.4.0-98-generic</code><br>
-可以保留对应4.4.0-98内核，取消就用<code>unhold</code>就好</p>
-
-                
-
-                <hr>
-                <!-- Pager -->
-                <ul class="pager">
-                    
-                        <li class="previous">
-                            <a href="/2019/01/03/cache/" data-toggle="tooltip" data-placement="top" title="Cache的工作方式复习">&larr; Previous Post</a>
-                        </li>
-                    
-                    
-                </ul>
-
-                <!-- duoshuo Share start -->
-                
-                <!-- 多说 Share end-->
-
-                <!-- 多说评论框 start -->
-                
-                <!-- 多说评论框 end -->
-
-                <!-- disqus comment start -->
-                
-                    <div class="comment">
-                        <div id="disqus_thread" class="disqus-thread"></div>
-                    </div>
-                
-                <!-- disqus comment end -->
-            </div>
+                col-lg-8 col-lg-offset-1
+                col-md-8 col-md-offset-1
+                col-sm-12
+                col-xs-12
+                post-container
+            ">
             
-            <!-- Tabe of Content -->
-            <!-- Table of Contents -->
+                <!-- Main Content -->
 
-                
-            <!-- Sidebar Container -->
-            <div class="
-                col-lg-8 col-lg-offset-2
-                col-md-10 col-md-offset-1
-                sidebar-container">
 
-                <!-- Featured Tags -->
-                
-                <section>
-                    <!-- no hr -->
-                    <h5><a href="/tags/">FEATURED TAGS</a></h5>
-                    <div class="tags">
-                       
-                          <a class="tag" href="/tags/#CUDA" title="CUDA">CUDA</a>
-                        
-                    </div>
-                </section>
-                
+<div class="post-preview">
 
-                <!-- Friends Blog -->
-                
-                <hr>
-                <h5>FRIENDS</h5>
-                <ul class="list-inline">
+    <a href="/2018/12/01/从安装Ubuntu 16.04到降低内核版本安装Cuda-9.0的方法/">
+        <h2 class="post-title">
+            Install Cuda-9.0 on Ubuntu 16.04
+        </h2>
+        <h3 class="post-subtitle">
+            
+        </h3>
+        <div class="post-content-preview">
+            从安装Ubuntu 16.04到降低内核版本安装Cuda-9.0的方法
 
-                    
-                        <li><a href="http://beantech.org" target="_blank">Bean Tech</a></li>
-                    
-                        <li><a href="http://blog.kaijun.rocks" target="_blank">Kaijun&#39;s Blog</a></li>
-                    
-                        <li><a href="http://huangxuan.me" target="_blank">Hux Blog</a></li>
-                    
-                        <li><a href="#" target="_blank">It Helps SEO</a></li>
-                    
-                </ul>
+作者：zsz
+时间：2018-12-01-20:18
+公元2018年12月1日，上午10时左右，开完分享组会的我开始调戏一台叫做kawaii的电脑，想给她安装个cuda 9.0，不想历经种种曲折，甚至将kawaii的内核损坏，几欲放弃，最终在王者峡谷沉思两个多小时后，我还是选择直面遍体鳞伤的kawaii，在牺牲了另外7......
+        </div>
+    </a>
+    
+        <p class="post-meta" style="margin: 10px 0;">
+            Posted by Sz Zheng on
+            2018-12-01
+        </p>
+        <div class="tags">
+            
+              <a href="/tags/#CUDA" title="CUDA">CUDA</a>
+            
+        </div>
+    
+
+</div>
+<hr>
+
+
+
+<!-- Pager -->
+
+<ul class="pager">
+    
+        <li class="previous">
+            <a href="/archives/2/">&larr; Newer Posts</a>
+        </li>
+    
+    
+</ul>
+
+
+
+                <!-- 如果开启评论功能 -->
                 
             </div>
-        </div>
+
+          <!-- Sidebar Container -->
+<div class="
+    col-lg-3 col-lg-offset-0
+    col-md-3 col-md-offset-0
+    col-sm-12
+    col-xs-12
+    sidebar-container
+">
+    
+        <!-- Featured Tags -->
+
+<section>
+    <!-- no hr -->
+    <h5><a href="/tags/">FEATURED TAGS</a></h5>
+    <div class="tags">
+        
+            
+        
+            
+        
+            
+            <a href="/tags/#Python" title="Python" rel="2">Python</a>
+            
+        
+            
+        
+            
+            <a href="/tags/#CUDA" title="CUDA" rel="2">CUDA</a>
+            
+        
+            
+            <a href="/tags/#便利生活" title="便利生活" rel="2">便利生活</a>
+            
+        
+            
+            <a href="/tags/#TVM" title="TVM" rel="2">TVM</a>
+            
+        
+            
+        
+            
+        
+            
+        
+            
+        
+            
+        
+            
+        
+            
+        
     </div>
-</article>
+</section>
 
+        <hr>
+    
+        <!-- Short About -->
+<section class="visible-md visible-lg">
+    <h5><a href="/about/">ABOUT ME</a></h5>
+    <div class="short-about">
 
+        
+            <img id="avatar_pic" src="/img/main-photo.jpg">
+        
 
+        
+            <p>Hi, I&#39;m Sz Zheng</p>
+        
 
-<!-- disqus embedded js code start (one page only need to embed once) -->
-<script type="text/javascript">
-    /* * * CONFIGURATION VARIABLES * * */
-    var disqus_shortname = "your-disqus-ID";
-    var disqus_identifier = "http://yoursite-url/2018/12/01/从安装Ubuntu 16.04到降低内核版本安装Cuda-9.0的方法/";
-    var disqus_url = "http://yoursite-url/2018/12/01/从安装Ubuntu 16.04到降低内核版本安装Cuda-9.0的方法/";
+        <!-- SNS Link -->
+        <ul class="list-inline">
+            
+            
+            
+                <li>
+                    <a target="_blank" href="https://www.zhihu.com/people/zheng-si-ze-45">
+                        <span class="fa-stack fa-lg">
+                            <i class="fa fa-circle fa-stack-2x"></i>
+                            <i class="fa  fa-stack-1x fa-inverse">知</i>
+                        </span>
+                    </a>
+                </li>
+            
 
-    (function() {
-        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
-        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
-    })();
-</script>
-<!-- disqus embedded js code start end -->
+            
+                <li>
+                    <a target="_blank" href="http://weibo.com/zhengCHNO">
+                        <span class="fa-stack fa-lg">
+                            <i class="fa fa-circle fa-stack-2x"></i>
+                            <i class="fa fa-weibo fa-stack-1x fa-inverse"></i>
+                        </span>
+                    </a>
+                </li>
+            
 
+            
+                <li>
+                    <a target="_blank" href="https://www.facebook.com/Sz.M.Zheng">
+                        <span class="fa-stack fa-lg">
+                            <i class="fa fa-circle fa-stack-2x"></i>
+                            <i class="fa fa-facebook fa-stack-1x fa-inverse"></i>
+                        </span>
+                    </a>
+                </li>
+            
 
+            
+                <li>
+                    <a target="_blank" href="https://github.com/KnowingNothing">
+                        <span class="fa-stack fa-lg">
+                            <i class="fa fa-circle fa-stack-2x"></i>
+                            <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                        </span>
+                    </a>
+                </li>
+            
+            
+            
+            
+        </ul>
+    </div>
+</section>
+        <hr>
+    
+        
+  <h5>RECENT POSTS
+  <div class="widget">
+    <ul>
+      
+        <li>
+          <a href="/2020/10/07/Hikey960-OS安装及OpenCL-driver安装/">Hikey960 OS安装及OpenCL driver安装</a>
+        </li>
+      
+        <li>
+          <a href="/2019/11/24/Polyhedral-Model/">Polyhedral Model</a>
+        </li>
+      
+        <li>
+          <a href="/2019/11/10/TVM-Relay-graph-compiler/">TVM/Relay graph compiler</a>
+        </li>
+      
+        <li>
+          <a href="/2019/11/05/NNVM-graph-compiler/">TVM/NNVM graph compiler</a>
+        </li>
+      
+        <li>
+          <a href="/2019/10/28/XLA探究-矩阵乘法/">XLA探究: 矩阵乘法</a>
+        </li>
+      
+    </ul>
+  </div>
+</h5>
+        <hr>
+    
+        <!-- Friends Blog -->
 
+<h5>FRIENDS</h5>
+<ul class="list-inline">
 
-<!-- async load function -->
-<script>
-    function async(u, c) {
-      var d = document, t = 'script',
-          o = d.createElement(t),
-          s = d.getElementsByTagName(t)[0];
-      o.src = u;
-      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
-      s.parentNode.insertBefore(o, s);
-    }
-</script>
-<!-- anchor-js, Doc:http://bryanbraun.github.io/anchorjs/'ℬ' -->
-<script>
-    async("https://cdn.bootcss.com/anchor-js/1.1.1/anchor.min.js",function(){
-        anchors.options = {
-          visible: 'hover',
-          placement: 'left',
-          icon: '♛'
-        };
-        anchors.add().remove('.intro-header h1').remove('.subheading').remove('.sidebar-container h5');
-    })
-</script>
-<style>
-    /* place left on bigger screen */
-    @media all and (min-width: 800px) {
-        .anchorjs-link{
-            position: absolute;
-            left: -0.75em;
-            font-size: 1.1em;
-            margin-top : -0.1em;
-        }
-    }
-</style>
+    
+        <li><a href="http://beantech.org" target="_blank">Bean Tech</a></li>
+    
+        <li><a href="http://blog.kaijun.rocks" target="_blank">Kaijun&#39;s Blog</a></li>
+    
+        <li><a href="http://huangxuan.me" target="_blank">Hux Blog</a></li>
+    
+        <li><a href="#" target="_blank">It Helps SEO</a></li>
+    
+</ul>
 
+        <hr>
+    
+</div>
+
+        
+    </div>
+</div>
 
 
     <!-- Footer -->

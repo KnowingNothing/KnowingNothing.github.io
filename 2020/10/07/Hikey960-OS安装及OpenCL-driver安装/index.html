@@ -226,9 +226,9 @@
 </ul>
 <h2><span id="1-准备">1. 准备</span></h2>
 <h3><span id="11-熟悉板子">1.1 熟悉板子</span></h3>
-<img src="hikey960/hikey-960-SD-front.jpg" height="300" width="600" alt="additional" align="center">
+<img src="hikey-960-SD-front.jpg" height="300" width="600" alt="additional" align="center">
 这块板子有一个type C接口和两个type A接口，一个HDMI输出，一个SD插槽，还有比较关键的GPIO用于控制输出。目前Debian kernel无法使用HDMI进行显示输出，所以必须从GPIO连串口进行控制输出。type C接口是刷OS时使用的接口。
-<img src="hikey960/hikey-960-SD-back.jpg" height="300" width="600" alt="additional" align="center">
+<img src="hikey-960-SD-back.jpg" height="300" width="600" alt="additional" align="center">
 板子的反面有三个开关，据说更老版本的是跳片。这些开关的组合代表了板子的不同状态：recovery/fastboot/normal
 <ul>
 <li>recovery: 1 ON; 2 ON; 3 OFF</li>
@@ -239,7 +239,7 @@
 <p>需要准备一个运行Linux的pc机作为host，一个1.8v的USB转TTL芯片及杜邦线（或者买<a href="https://www.96boards.org/product/uartserial/" target="_blank" rel="noopener">96Boards的UART</a>，某宝售价一百到两百）用作控制输出，一个USB typeC的线（手机充电线就行）（如果买了96Boards的UART，要准备一根micro USB线，手机充电线即可）。</p>
 <h2><span id="2-刷debian-os">2. 刷Debian OS</span></h2>
 <p>大致流程与<a href="https://www.96boards.org/documentation/consumer/hikey/hikey960/installation/linux-fastboot.md.html" target="_blank" rel="noopener">这里</a>一样，只是有点细节区别。<br>
-<img src="hikey960/gpio.png" height="300" width="200" alt="additional" align="center"><br>
+<img src="gpio.png" height="300" width="200" alt="additional" align="center"><br>
 首先切断板子电源，将开关调整至<strong>1:ON; 2:ON; 3:OFF</strong>的状态，此时板子在recovery状态，然后连接type C到pc机，再把控制输出接到pc机，这里我是向同学借了一个96Boards UART用作控制输出，直接连micro USB线就好；如果要用USB转TTL的话，就要自己把串口线接好，11,13号口分别是板子的输出和输入，用杜邦线把11号口连在转接器的输入，13号连在转接器的输出，USB端连接pc机。这些就绪后，接上电源线待机。此时两个USB接口连着pc机，pc机的/dev/下应该至少有两个ttyUSBx（比如ttyUSB0和ttyUSB1），通过插拔USB线，可以对应好哪个线是哪个ttyUSBx，为了方便说，就假设控制输出（就是UART的线）连着ttyUSB0，而type C线连着ttyUSB1。后续步骤涉及插拔电源线，USB线则可以一直连着，不用插拔。</p>
 <p>在pc机上使用screen监视控制输出，我本来用minicom，可是由于不太会用，导致只能看到输出而无法输入来自pc端的信息，所以最后使用了screen，命令为</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo screen /dev/ttyUSB0 115200</span><br></pre></td></tr></table></figure>
